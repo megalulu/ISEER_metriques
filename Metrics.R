@@ -18,7 +18,8 @@ pkgs = c(
   "xlsx",
   "nngeo",
   'installr',
-  'RSAGA'
+  'RSAGA',
+  `boop boop`
 )
 to_install = !pkgs %in% installed.packages()
 if (any(to_install)) {
