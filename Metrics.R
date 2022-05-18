@@ -18,6 +18,7 @@ pkgs = c(
   "xlsx",
   "nngeo",
   'installr',
+  `boop`
   'RSAGA',
   `leaisgreat`
 )
