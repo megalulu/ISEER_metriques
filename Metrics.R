@@ -19,6 +19,7 @@ pkgs = c(
   "nngeo",
   'installr',
   'RSAGA'
+  'Meghana'
 )
 to_install = !pkgs %in% installed.packages()
 if (any(to_install)) {
