@@ -19,7 +19,6 @@ pkgs = c(
   "nngeo",
   'installr',
   'RSAGA'
-  'Léatest2'
 )
 to_install = !pkgs %in% installed.packages()
 if (any(to_install)) {

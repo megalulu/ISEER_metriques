@@ -149,18 +149,18 @@ fviz_pca_var(ContH_sub_PCA,
 
 fragstat <-
   read.csv(
-    "C:/Meghana/Belgique/traitements/FRAGSTAT_test/results/test_results/batch_test.csv",
+    "C:/Meghana/Belgique/traitements/FRAGSTAT_test/results/test_results/batch_test_forest.csv",
     header = TRUE,
     sep = ";"
   )
 
 names(fragstat)
 
-fragstat$PD_m2 = fragstat$PD..hectare.1.*0.0001 #conver patch density from (hec[-1] to m[-2])
+fragstat$PD_m2= fragstat$PD*0.0001 #conver patch density from (hec[-1] to m[-2])
 names(fragstat)
 
 head(fragstat$PD_m2)
-head(fragstat$PD..hectare.1.)
+head(fragstat$PD)
 f = 2
 
 for (f in colnames(fragstat)) {
@@ -238,10 +238,13 @@ fviz_pca_var(fragstat_sub_PCA,
              repel = TRUE     # Avoid text overlapping
 )
 
-
+#create new variables for specific land use data. !!Only do this once!!
+fragstat_sub_agriculture = fragstat_sub
+fragstat_sub_grass = fragstat_sub
+fragstat_sub_forest = fragstat_sub
 
 #Combine all the Habitat Connectivity metrics together and redo correlation matrix and PCA analysis
-ContH_full = cbind(ContH_sub, fragstat_sub) #Combine fragstat_sub with ContH_sub (!!!!ATENTION one row missing from fragstat_sub --> add row of 0s)
+ContH_full = cbind(ContH_sub, fragstat_sub_grass) #Combine fragstat_sub with ContH_sub (!!!!ATENTION one row missing from fragstat_sub --> add row of 0s)
 #Pearson's correlation test 
 pairs.panels(ContH_full, 
              method = "pearson", # correlation method
