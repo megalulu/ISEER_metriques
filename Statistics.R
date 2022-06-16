@@ -145,7 +145,7 @@ fviz_pca_var(ContH_sub_PCA,
 
 
 ################################################################################
-#FRAGSTAT Clean up od data
+#FRAGSTAT Clean up of data
 
 fragstat <-
   read.csv(

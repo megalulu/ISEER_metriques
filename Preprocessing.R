@@ -297,6 +297,8 @@ for (i in 1:length(centerline_D_list)){
 path_MNS_folder = 'C:/Meghana/Belgique/traitements/data/MNS'
 list_files_mns = list.files(path_MNS_folder, pattern = '*.tif', full.names = T)
 folder_list = list.dirs(path_MNS_folder,  full.names = TRUE, recursive = F)
+file_list_mns = list.files(path_MNS_folder, pattern = '*.tif', full.names = T)
+f = 1
 
 for (f in 1:length(folder_list)){
   folder = folder_list[f]
@@ -311,6 +313,18 @@ for (f in 1:length(folder_list)){
   writeRaster(mns,MNS_file_name, overwrite = T )
   
 }
+
+path_output_MNS_nodata = 'C:/Meghana/Belgique/traitements/data/MNS/MNS_nodata/'
+t=1
+for (t in 1:length(file_list_mns)){
+  mns = terra::rast(file_list_mns[t])
+  mns_id = names(mns)
+  mns[is.na(mns)] <- -32768
+  terra::writeRaster(mns, paste0(path_output_MNS_nodata, mns_id, '.tif'))
+}
+
+
+
 
 path_mnt = 'C:/Meghana/Belgique/traitements/data/MNT/'
 file_list_mnt = list.files(path_mnt, pattern = '*.tif', full.names = T)

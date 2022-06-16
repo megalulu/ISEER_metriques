@@ -340,8 +340,6 @@ for (i in 1:list_file_mnt){
   
 }
 
-test = rast('C:/Meghana/Belgique/traitements/data/MNT/MNT_31H16NO.tif')
-
 
 
 #######################################################################################
@@ -390,6 +388,8 @@ mns_shade7 = rast('C:/Meghana/Belgique/traitements/results/hillshading/hillshade
 crs(mns_shade7) <- 'EPSG:2949'
 mns_shade8 = rast('C:/Meghana/Belgique/traitements/results/hillshading/hillshade_MNS/hillshade_mns8.sdat')
 crs(mns_shade8) <- 'EPSG:2950'
+
+
 #Step C: read water surface polygones
 
 path_name_buffer_largeur_mod #variable should already exist and leads to shp of calculate water surface
@@ -422,6 +422,7 @@ l = 2
 i =1
 #load virtual mhc rasters per given projection
 UREC_merge #should already exist from past creation
+
 UREC_merge_v = vect(UREC_merge) #convert sf object into SpatVect object
 #Convert UREC_merge_v to CRS of MHC7 and MHC8
 UREC_v7 = terra::project(UREC_merge_v, 'epsg:2949') #MTM7
@@ -484,6 +485,89 @@ for (l in 1:nrow(UREC_v8)) {#change this depending on projection needed
     }
   }
 }
+
+
+################################################################################
+  #Metric Time in Daylight 
+################################################################################
+
+#Step 1 : Load river width classed by UREC and rive. This variable already exists and was created previously 
+list_files_water
+#Step 2 : Load Time In Daylight Raster (previously made in terminal via VsCode) this may need to be optimized. 
+path_TiD = 'C:/Meghana/Belgique/traitements/whitebox_tests/output/'
+TiD7 = rast(paste0(path_TiD, 'TiD_mtm7/TiD_mtm7.tif'))
+TiD8 = rast(paste0(path_TiD, 'TiD_mtm8/TiD_mtm8.tif'))
+
+#Step 3: Load UREC_merge : Create 2 extent variables by reprojecting to mtm7 and mtm8 
+UREC_merge = st_read('C:/Meghana/Belgique/traitements/results/UREC_merge/UREC_merge_new.shp')
+UREC_merge_v = vect(UREC_merge) #convert sf object into SpatVect object
+#Convert UREC_merge_v to CRS of MTM7 and MTM8
+UREC_v7 = terra::project(UREC_merge_v, 'epsg:2949') #MTM7
+UREC_v8 = terra::project(UREC_merge_v,'epsg:2950' )
+
+#Get extents of rasters in both projections
+etendu_shade7 = ext(mns_shade7)#MHC7 This should be the same as Time in Daylight Extent 
+etendu_shade8 = ext(mns_shade8) #MHC8 This should be the same as Time In Daylight Extent !Attention!
+UREC_v7 = terra::crop(UREC_v7, etendu_shade7) #Cropped UREC_v7 to only include UREC that overlay the extent of raster mns_shade7
+UREC_v8 = terra::crop(UREC_v8, etendu_shade8)
+
+l = 1
+a = 1
+i = 1
+#Step 4: Do for loop to get the median value of time in daylight within the water polygon per UREC
+for (l in 1:nrow(UREC_v8)) {#change this depending on projection needed
+  rive = UREC_v8[l] #changed this depending on projection needed
+  Id_uea = rive$Id_UEA
+  Id_uea
+  Id_rive = rive$Id_rive
+  Id_rive
+  for (a in 1:length(list_files_UREC_rives)) {
+    seg = vect(list_files_UREC_rives[a])
+    Id_seg = seg$Id_UEA
+    Id_seg
+    Id_seg_rive = seg$Id_rive
+    Id_seg_rive
+    
+    if ((Id_uea == Id_seg) & (Id_seg_rive == Id_rive)) {
+      for (i in 1:length(list_files_water)) {
+        water = vect(list_files_water[i])
+        water_uea = water$ID_UEA
+        water_uea
+        water_rive = water$Id_rive
+        water_rive
+        water = terra::project(water, rive) #project water to same projection as rive (either MTM7 --> espg : 2949 OR MTM8 --> espg: 2950)
+        if ((water_uea == Id_uea) & (water_rive == Id_rive)) {
+          name = paste0(
+            'C:/Meghana/Belgique/traitements/results/UREC_rives_new/',
+            Id_uea,
+            '_rive',
+            Id_rive,
+            '.shp'
+          )
+          name
+  
+          TiD = TiD8 #Needs to be changed depending on UREC projection (UREC_v7 or UREC_v8)
+          TiD = terra::crop(TiD, water)
+          water_raster = terra::rasterize(water,TiD)
+          TiD <-
+            terra::mask(TiD, water_raster)# masquer le raster ombre avec la surface de l'eau
+          # normaliser et inverser :
+          #ombre <- ombre / 90
+          #ombre <- abs(ombre - 1)
+          IndTiD = median(values(TiD), na.rm = T)
+          seg$IndTiD = IndTiD
+          print(paste0('writing file UEA ', Id_seg, ' rive ',Id_seg_rive) )
+          terra::writeVector(seg, name, overwrite = T)
+          
+        }
+      }
+    }
+  }
+}
+
+
+
+
 
 ################################################################################
   #Metric Surface de la canopee en surplomb sur la riviere
