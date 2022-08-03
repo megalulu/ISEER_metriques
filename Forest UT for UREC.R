@@ -54,3 +54,23 @@ esa_mask = terra::mask(esa_clip, UREC_raster)
 esa_F= esa_mask
 esa_F[esa_F!=10] <-NA
 esa_F[esa_F == 10]<- 1
+##########################################################################
+#Get Land use data from clipped ESA to UREC for urban class
+
+#Read and put in list all files for landuse clipped to UREC
+path_esa_UREC = 'C:/Meghana/Belgique/traitements/FRAGSTAT_test/results/ESA_UREC/'
+list_files_esa_UREC = list.files(path_esa_UREC, pattern = '.*tif', full.names = T)
+
+#Do for loop to extract only urban land use and write out tif file.
+i = 1
+for (i in 1:length(list_files_esa_UREC)){
+  tile = rast(list_files_esa_UREC[i])
+  tile[tile != 50] <- NA
+  tile[tile == 50]<- 1
+  tile_name = list_files_esa_UREC[i]
+  name =  sub(".*ESA_UREC/ESA_", "", tile_name)
+  name = paste0('C:/Meghana/Belgique/traitements/FRAGSTAT_test/results/Urban_UREC/', name)
+  writeRaster(tile, name, overwrite = T)
+
+}
+
