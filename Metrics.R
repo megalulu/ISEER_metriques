@@ -283,10 +283,6 @@ for (i in 1:length(list_files_sampling_rive)) {
 #################################################################################
 
 
-
-
-
-
 #Indice de continuite de l'habitat
 #Still needs work
 #################################################################################
@@ -426,11 +422,18 @@ UREC_merge #should already exist from past creation
 UREC_merge_v = vect(UREC_merge) #convert sf object into SpatVect object
 #Convert UREC_merge_v to CRS of MHC7 and MHC8
 UREC_v7 = terra::project(UREC_merge_v, 'epsg:2949') #MTM7
+
 UREC_v8 = terra::project(UREC_merge_v,'epsg:2950' )
 
 #Get extents of rasters in both projections
 etendu_shade7 = ext(mns_shade7)#MHC7
+extent_mtm7 = as.polygons(ext(mns_shade7), crs=crs(mns_shade7))
+writeVector(extent_mtm7, filename = 'C:/Users/mparanjape/Desktop/try1/extent_mtm7.shp') #Write out extent of mtm7 zone
 etendu_shade8 = ext(mns_shade8) #MHC8
+extent_mtm8 =  as.polygons(ext(mns_shade8), crs=crs(mns_shade8))
+writeVector(extent_mtm8, filename = 'C:/Users/mparanjape/Desktop/try1/extent_mtm8.shp') #Write out extent of mtm7 zone
+
+
 #Clip UREC_v 7 and 8 to extent of mhc7 and 8 
 UREC_v7 = terra::crop(UREC_v7, etendu_shade7) #Cropped UREC_v7 to only include UREC that overlay the extent of raster mns_shade7
 UREC_v8 = terra::crop(UREC_v8, etendu_shade8)
