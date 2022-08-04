@@ -2,14 +2,17 @@
 
 #Install and import libraries
 ############################
-install.packages("corrplot")
-install.packages("Hmisc")
-install.packages('ggplot')
-install.packages("ggpubr")
-install.packages("factoextra")
-install.packages("corrplot")
-install.packages('knitr')
-install.packages('metan')
+using<-function(...) {
+  libs<-unlist(list(...))
+  req<-unlist(lapply(libs,require,character.only=TRUE))
+  need<-libs[req==FALSE]
+  if(length(need)>0){ 
+    install.packages(need)
+    lapply(need,require,character.only=TRUE)
+  }
+}
+using("corrplot",'Hmisc' ,"ggplot","ggpubr",'factoextra', 'corrplot')
+
 
 #Import Librarries
 #############################
@@ -20,18 +23,13 @@ library(ggpubr)
 library(car)
 library(factoextra)
 library(psych)
-library(metan)
 
-
-
-df = ContH #Sqlite object with columns 'id_uea', 'id_rive'
-var2 = 'Habitat continuity'
 
 
 ##############################################################################
               #Visualising Correlation matrix between variables
 ##############################################################################
-# df : dataframe <-  metrics to do correlation analysis on. Dataframe should only have numeric values
+# df : dataframe <-  metrics to do correlation analysis on. Dataframe should only have numeric values and the two columns ('id_uea', 'id_rive')
 # var2 : Character string <- Name of the set of metrics you are testing (can be name of ecosystem function)
 # output : res (matrix array) <-table of correlation matrix 
 Correlation_matrix <- function(df, var2) {
@@ -92,11 +90,7 @@ Correlation_matrix <- function(df, var2) {
   return(res)
   
 }
-test = Correlation_matrix(df = ContH, var2 = 'Habitat continuity')
 
-#Test data 
-df = ContH_sub_4 #to be deleted
-df_name = 'Cont Habitat' #to be deleted
 
 
 ##############################################################################
@@ -136,10 +130,8 @@ PCA_graph_function <- function(df, df_name ){
   
   return(df_PCA_tbl)
   
-  
 }
 
-test = PCA_graph_function(df = ContH_sub_4, df_name = 'Habitat continuity')
 
 
 
