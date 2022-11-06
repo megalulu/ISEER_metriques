@@ -29,7 +29,7 @@ library(psych)
 ##############################################################################
               #Visualising Correlation matrix between variables
 ##############################################################################
-# df : dataframe <-  metrics to do correlation analysis on. Dataframe should only have numeric values and the two columns ('id_uea', 'id_rive')
+# df : object sf ou Spatvect <-  metrics to do correlation analysis on. Dataframe should only have numeric values and the two columns ('id_uea', 'id_rive')
 # var2 : Character string <- Name of the set of metrics you are testing (can be name of ecosystem function)
 # output : res (matrix array) <-table of correlation matrix 
 Correlation_matrix <- function(df, var2) {
@@ -97,13 +97,13 @@ Correlation_matrix <- function(df, var2) {
           #PCA function for visualisation
 ##############################################################################
 
-# df : Dataframe <- or sf or spatvector object with only colums that you want to do PCA for (only numeric values
+# df : Dataframe <- or sf or spatvector object with only colums that you want to do PCA for (only numeric values)
 #df_name : String of characters <- Name to add to title of plots
 #Returns : 1. One scree plot of PCA
           #2. PCA plot
           #3. df_PCA_tbl : a list of matrices containing all the results for the active individuals/variables including:
               #coord (Coordinates on graph of each vector) : #coordinates for the individuals/variables
-              #cos2 cos: 2 for the individuals/variables
+              #cos2 : cos2 for the individuals/variables
               #contrib :  # contributions of the individuals/variables 
               # cor : matrix of covariance between variables
 PCA_graph_function <- function(df, df_name ){

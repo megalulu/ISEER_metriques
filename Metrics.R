@@ -29,18 +29,18 @@ if (any(to_install)) {
 library(sp)
 library(sf)
 library(raster)
-library(gdalUtils)
+#library(gdalUtils) #doesn't exist anymore???
 library(dplyr)
 library(units)
 library(purrr)
-library(lwgeom)
 library(xlsx)
 library (nngeo)
 library(installr)
-library(RSAGA)
+#library(RSAGA) #doesn't exist anymore??
 library(terra)
 library(exactextractr)
-library(whitebox)
+library(landscapemetrics)
+#library(whitebox)
 setwd = 'C:/Meghana/Belgique'
 
 
@@ -210,11 +210,14 @@ for (r in 1:length(list_files_UREC_rives)) {
       esa_A = esa_mask
       esa_A[esa_A != 40] <- NA # replace what is not agriculture (cropland) by NA
       esa_A[esa_A == 40] <- 1 # replace 40 (cropland) by 1
-      #Extract the surface of forested/ grassland/urban/agriculture pixels in each sub-sampling area and calculate continuity of forests
-      UREC$surface_F = exactextractr::exact_extract(esa_F, UREC_vect, 'sum') *10 #multiply sum by area of each pixel (meed to do this with sf object!)
-      UREC$surface_G = exactextractr::exact_extract(esa_G, UREC_vect, 'sum') *10
-      UREC$surface_U = exactextractr::exact_extract(esa_U, UREC_vect, 'sum') *10
-      UREC$surface_A = exactextractr::exact_extract(esa_A, UREC_vect, 'sum') *10
+      
+    
+      
+      #Extract the surface of forested/ grassland/urban/agriculture pixels in each UREC to get other metric
+      UREC$surface_full_F = exactextractr::exact_extract(esa_F, shp, 'sum') *10 #multiply sum by area of each pixel (meed to do this with sf object!)
+      UREC$surface_full_G = exactextractr::exact_extract(esa_G, shp, 'sum') *10
+      UREC$surface_full_U = exactextractr::exact_extract(esa_U, shp, 'sum') *10
+      UREC$surface_full_A = exactextractr::exact_extract(esa_A, shp, 'sum') *10
       
       UREC$area = as.numeric(st_area(UREC_vect)) #calculate the area of each sampling unit in the UREC
       UREC$propF = UREC$surface_F / UREC$area # get the ratio of forested area in each sampling unit by the area of the sampling unit
@@ -286,6 +289,7 @@ for (i in 1:length(list_files_sampling_rive)) {
 #Indice de continuite de l'habitat
 #Still needs work
 #################################################################################
+i = 1
 for (i in 1:length(list_files_UREC_rives)){
   rive = st_read(list_files_UREC_rives[i])
   rive_Id_UEA = rive$Id_UEA

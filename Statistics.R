@@ -6,6 +6,10 @@ install.packages("Hmisc")
 install.packages('ggplot')
 install.packages("ggpubr")
 install.packages("factoextra")
+install.packages("corrplot")
+install.packages('knitr')
+install.packages('metan')
+
 library(Hmisc)
 library(corrplot)
 library(ggplot2)
@@ -13,6 +17,7 @@ library("ggpubr")
 library('car')
 library(factoextra)
 library(psych)
+library(metan)
 
 #import UREC_merge_norm from results/(already in my environment as UREC_norm)
 UREC_norm = vect('C:/Meghana/Belgique/traitements/results/UREC_merge/UREC_merge_norm.shp')
@@ -21,7 +26,27 @@ UREC_norm_sqlite = vect('C:/Meghana/Belgique/traitements/results/UREC_merge/UREC
 print(names(UREC_norm))
 #Extract columns we care about for each EF (RegT = Regulation de la temperature de l'eau)
 RegT = UREC_norm[,c("Id_UEA","Id_rive", "srfCan_m2_nrm",  "IndOmbrage_nrm")] #DataFrame for Regulation de la temperature de l'eau
-ContH = UREC_norm[,c("Id_UEA","Id_rive","contF_nrm",  "contG_nrm","contU_nrm"  ,"contA_nrm")] #DataFrame for Continuite de l
+ContH = UREC_norm_sqlite[, c(
+  "id_uea"    ,     "id_rive" ,
+  "contf_nrm",
+  "contu_nrm"   ,   "conta_nrm" ,"contf_nrm"  ,    "contg_nrm"  ,
+  "shape_mnf_nrm",
+  "area_mnf_nrm",
+  "pdf_nrm" ,
+  "lpif_nrm"  ,
+  "shape_mng_nrm" ,
+  "area_mng_nrm" ,
+  "pdg_nrm"  ,
+  "lpig_nrm",
+  "shape_mnu_nrm",
+  "area_mnu_nrm"  ,
+  "pdu_nrm"   ,
+  "lpiu_nrm"   ,
+  "shape_mna_nrm"  ,
+  "area_mna_nrm" ,
+  "pda_nrm" ,
+  "lpia_nrm"
+)] #DataFrame for Continuite de l
 
 ################################################################################
 #Fonction 6: Regulation de la temperature de l'eau
@@ -117,7 +142,11 @@ shapiro.test(ContH$contA_nrm) #ContHab: Agriculture Continuity is not normally d
 
 
 #Do Pearson's correlation between the variables reprensenting each function (Pearson's correlation does not depend on normality of data)
-ContH_sub = as.data.frame(ContH[,c("contF_nrm",  "contG_nrm","contU_nrm"  ,"contA_nrm")])#Subset data for numeric colums on which to do Correlation and transform into data frame
+ContH_sub = as.data.frame(ContH)
+ContH_sub = ContH_sub %>% select(-c('id_uea','id_rive'))
+#ContH_sub = subset(ContH, select = -c('id_uea','id_rive') )
+#ContH_sub = as.data.frame(ContH[,c("contF_nrm",  "contG_nrm","contU_nrm"  ,"contA_nrm")])#Subset data for numeric colums on which to do Correlation and transform into data frame
+
 #Correlation scatter plot for matrix of data with R scores and frequency distribution and density plots. 
 pairs.panels(ContH_sub, 
              method = "pearson", # correlation method
@@ -126,26 +155,132 @@ pairs.panels(ContH_sub,
              ellipses = TRUE # show correlation ellipses
 )
          
+#Correlation table in matrix form
+
+res <- round(cor(ContH_sub, method = c('spearman')), 2)
+#Correlation colour table and heatmap
+corrplot.mixed(res, lower = 'number', upper = 'square', tl.pos = 'lt', tl.cex = 1,number.cex = 0.5, diag = 'n')
+
+
+correlations = res
+correlations[abs(correlations<0.6)] <- NA
+test <- subset(res, abs(res) >= .6)
+#Correlation table
+corrplot(res,method= 'number', type = "lower", order = "original", 
+         tl.col = "black", tl.srt = 45, is.corr = T, diag = T, sig.level = 0.05,insig = 'blank', number.cex = 0.5)
+thresh_res =symnum(res, cutpoints = c( -1, -0.6,0.6,1),
+       symbols = c(" -", "*", "+"),
+       abbr.colnames = F)
+#Get P-value for pair of input values
+testRes = cor.mtest(res, conf.level = 0.95)
+corrplot(res, p.mat = testRes$p, sig.level = 0.05, order = 'hclust', addrect = 2) #Put an X on insignificant correlation data
+corrplot(res, p.mat = testRes$p,sig.level = 0.05, method = 'square', type = 'lower', insig='blank',
+         addCoef.col ='black', number.cex = 0.40, order = 'AOE', diag=FALSE, win.asp = 1)       #Leave blank insignificant correlation data
 
 
 
 
+
+
+###METAN correlation library
+corl1 = corr_coef(ContH_sub)
+plot(corl1)
+
+#Sub dataframe
+ContH_sub_fragU = ContH_sub[, c("shape_mnu_nrm",
+                                "area_mnu_nrm"  ,
+                                "pdu_nrm"   ,
+                                "lpiu_nrm")]
+
+res_fragU = cor(ContH_sub_fragU, method = c('spearman'))
+corrplot(res_fragU,method= 'number', type = "lower", order = "original", 
+  tl.col = "black", tl.srt = 45, is.corr = T, diag = T, sig.level = 0.05,insig = 'blank', number.cex = 0.5)
+
+ContH_sub_fragA = ContH_sub[, c("shape_mna_nrm",
+                                "area_mna_nrm"  ,
+                                "pda_nrm"   ,
+                                "lpia_nrm")]
+res_fragA = cor(ContH_sub_fragA, method = c('spearman'))
+corrplot(res_fragA,method= 'number', type = "lower", order = "original", 
+         tl.col = "black", tl.srt = 45, is.corr = T, diag = T, sig.level = 0.05,insig = 'blank', number.cex = 0.5)
+
+ContH_sub_fragF =ContH_sub[, c("shape_mnf_nrm",
+                               "area_mnf_nrm"  ,
+                               "pdf_nrm"   ,
+                               "lpif_nrm")]
+res_fragF = cor(ContH_sub_fragF, method = c('spearman'))
+corrplot(res_fragF,method= 'number', type = "lower", order = "original", 
+         tl.col = "black", tl.srt = 45, is.corr = T, diag = T, sig.level = 0.05,insig = 'blank', number.cex = 0.5)
+
+ContH_sub_fragG =ContH_sub[, c("shape_mng_nrm",
+                               "area_mng_nrm"  ,
+                               "pdg_nrm"   ,
+                               "lpig_nrm")]
+res_fragG = cor(ContH_sub_fragG, method = c('spearman'))
+corrplot(res_fragG,method= 'number', type = "lower", order = "original", 
+         tl.col = "black", tl.srt = 45, is.corr = T, diag = T, sig.level = 0.05,insig = 'blank', number.cex = 0.5)
 
 #PCA analysis 
-princomp(ContH_sub, cor = TRUE, scores = TRUE) #for analysing variables
+
+#Sub dataframe of only variables that have a significatn p-value and are correlated over 0.6 
+ContH_sub_2 = ContH_sub[, c(
+  "conta_nrm" ,"contf_nrm",
+  "shape_mnf_nrm",
+  "area_mnf_nrm"  ,
+  "shape_mnu_nrm",
+  "area_mnu_nrm"  ,
+  "pdu_nrm"   ,
+  "lpiu_nrm"   ,
+  "shape_mna_nrm"  ,
+  "area_mna_nrm" ,
+  "pda_nrm",
+  "lpia_nrm"
+)]
+
+#Sub data frame of all variables except thode in ContH_sub_2
+ContH_sub_3 = ContH_sub
+ContH_sub_3 %>% select(-c(
+  "conta_nrm" ,"contf_nrm",
+  "shape_mnf_nrm",
+  "area_mnf_nrm"  ,
+  "shape_mnu_nrm",
+  "area_mnu_nrm"  ,
+  "pdu_nrm"   ,
+  "lpiu_nrm"   ,
+  "shape_mna_nrm"  ,
+  "area_mna_nrm" ,
+  "pda_nrm",
+  "lpia_nrm"
+))
+
+ContH_sub_4 = as.data.frame(ContH[,c("shape_mng_nrm","area_mng_nrm",'shape_mnG_nrm',
+                                      'pdg_nrm','lpig_nrm', 'pdu_nrm','pda_nrm', 'conta_nrm', 'contf_nrm')])
+
+
+princomp(ContH_sub_3, cor = TRUE, scores = TRUE) #for analysing variables
 #Visualising PCA analysis
-ContH_sub_PCA <- prcomp(ContH_sub, scale = TRUE)
+ContH_sub_PCA <- prcomp(ContH_sub_4, scale = TRUE)
+ContH_sub_PCA_new =get_pca_var(ContH_sub_PCA)
 fviz_eig(ContH_sub_PCA)
+
 fviz_pca_var(ContH_sub_PCA,
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE     # Avoid text overlapping
+             repel = TRUE   # Avoid text overlapping
+    
 )
 
 
 
+
+
+
+source('Statistics_new.R')
+test = Correlation_matrix(df = ContH, var2 = 'Habitat Continuity')
+pca_test = PCA_graph_function(df = ContH_sub_4, df_name = 'Habitat Continuity')
 ################################################################################
 #FRAGSTAT Clean up of data
+################################################################################
 
 fragstat <-
   read.csv(
