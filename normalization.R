@@ -5,15 +5,16 @@ library(sf)
 library(naniar)
 library(tidyr)
 #If UREC_merge and UERC_norm already exists then open from the correct location 
-UREC_merge = st_read('C:/Meghana/Belgique/traitements/results/UREC_merge/UREC_merge_new.shp')
+#UREC_merge = st_read('C:/Meghana/Belgique/traitements/results/UREC_merge/UREC_merge_new.SQLite')
+UREC_merge = st_read("C:/Meghana/Belgique/traitements/results/Test_ContH/test_UT_2019/UREC_merge_norm.shp")
 #If UREC_norm exists : 
 UREC_norm = st_read('C:/Meghana/Belgique/traitements/results/UREC_merge/UREC_merge_norm.shp')
 
 ################################################################################
 #This code is to check that each UREC_file has the same number of columns 
 i =2
-for (i in 1:length(list_files_UREC_rives_TBD)){ #TO be changed
-  test = st_read(list_files_UREC_rives_TBD[i])  #TO be changed
+for (i in 1:length(list_files_UREC_rives)){ #TO be changed
+  test = st_read(list_files_UREC_rives[i])  #TO be changed
   if (i ==1){
     check = test
     cnt_col_check = ncol(check)}
@@ -34,12 +35,12 @@ for (i in 1:length(list_files_UREC_rives_TBD)){ #TO be changed
 #merge all the UREC_rive shapefiles with pre-calculated metrics. ATTENTION : may need to change save file name
 i = 2
 #Initilize variable UREC_merge outside of for loop
-UREC_merge = st_read(list_files_UREC_rives_TBD[1])
+UREC_merge = st_read(list_files_UREC_rives[1])
 i = 2
-for (i in 2:length(list_files_UREC_rives_TBD))
+for (i in 2:length(list_files_UREC_rives))
   #Start for loop at posiion 2 because of initialization process
 {
-  shp = st_read(list_files_UREC_rives_TBD[i])
+  shp = st_read(list_files_UREC_rives[i])
   print(paste0('reading UEA file ', shp$Id_UEA, ' at rive ', shp$Id_rive))
   print(paste0(
     'binding UREC_merge with UEA ',
@@ -72,8 +73,8 @@ for (f in colnames(UREC_norm)) {
   colname = names(feature_table)
   print(colname)
   #Check if column name is 'Id_UEA' or 'Id_rive' or 'ext_geometry' or IndOmbrage (already has values between 0 and 1) : these columns should not be normalized
-  if (colname != 'Id_UEA' &
-      colname != 'Id_rive' & colname != 'ext_geometry') {
+  if (colname != 'id_uea' &
+      colname != 'id_rive' & colname != 'ext_geometry'& colname != 'id') {
     print('Colename is not Id_UEA or Id_rive or geometry.')
     new_colname =   paste0(names(feature_table), '_nrm')#Create name for normalized column
     print(new_colname) #Print new column name to make sure it looks correct
@@ -102,3 +103,9 @@ UREC_norm = st_set_geometry(UREC_norm, UREC_norm$geometry)
 UREC_norm = vect(UREC_norm)
 writeVector(UREC_norm, 'C:/Meghana/Belgique/traitements/results/UREC_merge/UREC_merge_norm.SQLite', filetype = 'SQLite',  overwrite = TRUE ) # Need to write in SQlite to keep names 
 writeVector(UREC_norm, 'C:/Meghana/Belgique/traitements/results/UREC_merge/UREC_merge_norm.shp',  overwrite = TRUE ) # Need this will change the col names (abbreviate them weirdly)
+
+#############################################################################
+#Write out normalized data for ContH test with UT19
+writeVector(UREC_norm,'C:/Meghana/Belgique/traitements/results/Test_ContH/test_UT_2019/UREC_merge_norm_2.SQLite', filetype = 'SQLite',  overwrite = TRUE )
+writeVector(UREC_norm, 'C:/Meghana/Belgique/traitements/results/Test_ContH/test_UT_2019/UREC_merge_norm_2.shp',  overwrite = TRUE ) # Need this will change the col names (abbreviate them weirdly)
+

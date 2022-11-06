@@ -29,12 +29,12 @@ library(psych)
 ##############################################################################
               #Visualising Correlation matrix between variables
 ##############################################################################
-# df : object sf ou Spatvect <-  metrics to do correlation analysis on. Dataframe should only have numeric values and the two columns ('id_uea', 'id_rive')
+# df : object Spatvect <-  metrics to do correlation analysis on. Dataframe should only have numeric values and the two columns ('id_uea', 'id_rive')
 # var2 : Character string <- Name of the set of metrics you are testing (can be name of ecosystem function)
 # output : res (matrix array) <-table of correlation matrix 
 Correlation_matrix <- function(df, var2) {
   df = as.data.frame(df)
-  df_sub = df %>% select(-c('id_uea', 'id_rive')) #subset dataframe to only select numeric data
+  df_sub = df %>% select(-c('id_uea', 'id_rive', 'id')) #subset dataframe to only select numeric data
   res <-
     round(cor(df_sub, method = c('spearman')), 2) #Create Correlation matrix
   
@@ -106,7 +106,7 @@ Correlation_matrix <- function(df, var2) {
               #cos2 : cos2 for the individuals/variables
               #contrib :  # contributions of the individuals/variables 
               # cor : matrix of covariance between variables
-PCA_graph_function <- function(df, df_name ){
+PCA_graph_function <- function(df, df_name, axe ){
   library(factoextra)
   
   #Transform sf or spatVec object into dataframe
@@ -120,7 +120,7 @@ PCA_graph_function <- function(df, df_name ){
   
   Screeplot = fviz_eig(df_PCA, title = paste0('Screeplot ', df_name))
   print(Screeplot)
-  PCA_plot  = fviz_pca_var(df_PCA,
+  PCA_plot  = fviz_pca_var(df_PCA, axes = axe,
                col.var = "contrib", # Color by contributions to the PC
                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
                repel = TRUE ,  # Avoid text overlapping

@@ -93,19 +93,19 @@ fragstat_function(list_ESA = list_rast_ESA_Grass,
 path_ESA_Forest = 'C:/Meghana/Belgique/traitements/FRAGSTAT_test/results/Forest_UREC'
 list_rast_ESA_forest = list.files(path = path_ESA_Forest, pattern = '*.tif', full.names = T)
 
-i =1
-r= 1
-for (i in 1:length(list_files_UREC_rives_TBD)){
-  UREC = vect(list_files_UREC_rives_TBD[i])
-  UREC_name = list_files_UREC_rives_TBD[i]
-  UREC_name=  sub(".*TBD_UREC_rive_new/", "", UREC_name)
+i =48
+r= 48
+for (i in 1:length(list_files_UREC_rives)){
+  UREC = vect(list_files_UREC_rives[i])
+  UREC_name = list_files_UREC_rives[i]
+  UREC_name=  sub(".*UREC_rives_new/", "", UREC_name)
   UREC_name = sub(".shp.*", "", UREC_name) 
-  name = list_files_UREC_rives_TBD[i]
+  name = list_files_UREC_rives[i]
   
-  for (r in 1:length(list_rast_ESA_Grass)){ #Needs to be changed
-    tile = rast(list_rast_ESA_Grass[r])  #Needs to be changed
-    tile_name = list_rast_ESA_Grass[r]   #Needs to be changed
-    tile_name = sub('.*Grass_UREC/', '', tile_name) #Needs to be changed
+  for (r in 1:length(list_rast_ESA_Urban)){ #Needs to be changed
+    tile = rast(list_rast_ESA_Urban[r])  #Needs to be changed
+    tile_name = list_rast_ESA_Urban[r]   #Needs to be changed
+    tile_name = sub('.*Urban/', '', tile_name) #Needs to be changed
     tile_name = sub('.tif.*', '', tile_name)
     
     if (UREC_name == tile_name){
@@ -113,12 +113,12 @@ for (i in 1:length(list_files_UREC_rives_TBD)){
       check = check_landscape(tile, verbose = T)
       #If the input data is not properly formatted, put NA for values in UREC table at primary key 
       #F is for Forest!! NEEDS TO BE CHANGED FOR DIFFERENT TILE TYPES !!!!
-      if (check$OK == 'x'){
+      if (check$OK == "✖"){
 
-        UREC$shape_mnG = -999  #Needs to be changed
-        UREC$area_mnG = -999   #Needs to be changed
-        UREC$pdG = -999        #Needs to be changed
-        UREC$lpiG = -999       #Needs to be changed
+        UREC$shape_mnU = -999  #Needs to be changed
+        UREC$area_mnU= -999   #Needs to be changed
+        UREC$pdU = -999        #Needs to be changed
+        UREC$lpiU = -999       #Needs to be changed
       }else {
         #Calculate landscape metrics
         shape_mn = lsm_l_shape_mn(tile) #Mean shape Index
@@ -126,10 +126,10 @@ for (i in 1:length(list_files_UREC_rives_TBD)){
         pd = lsm_l_pd(tile) #Patch Density
         lpi = lsm_l_lpi(tile) #Largest Patch index
         #Add values to UREC table based on primary key
-        UREC$shape_mnG = shape_mn$value     #Needs to be changed
-        UREC$area_mnG = area_mn$value       #Needs to be changed
-        UREC$pdG = pd$value                 #Needs to be changed      
-        UREC$lpiG = lpi$value               #Needs to be changed
+        UREC$shape_mnU = shape_mn$value     #Needs to be changed
+        UREC$area_mnU = area_mn$value       #Needs to be changed
+        UREC$pdU= pd$value                 #Needs to be changed      
+        UREC$lpiU = lpi$value               #Needs to be changed
         
         
       }

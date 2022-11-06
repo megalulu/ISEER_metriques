@@ -18,6 +18,7 @@ library('car')
 library(factoextra)
 library(psych)
 library(metan)
+library(terra)
 
 #import UREC_merge_norm from results/(already in my environment as UREC_norm)
 UREC_norm = vect('C:/Meghana/Belgique/traitements/results/UREC_merge/UREC_merge_norm.shp')
