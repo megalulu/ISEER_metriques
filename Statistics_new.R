@@ -34,7 +34,7 @@ library(psych)
 # output : res (matrix array) <-table of correlation matrix 
 Correlation_matrix <- function(df, var2) {
   df = as.data.frame(df)
-  df_sub = df %>% select(-c('id_uea', 'id_rive', 'id')) #subset dataframe to only select numeric data
+  df_sub = df %>% select(-c('id_uea', 'rive', 'id')) #subset dataframe to only select numeric data
   res <-
     round(cor(df_sub, method = c('spearman')), 2) #Create Correlation matrix
   
@@ -111,7 +111,8 @@ PCA_graph_function <- function(df, df_name, axe ){
   
   #Transform sf or spatVec object into dataframe
   df = as.data.frame(df)
-
+  df = df %>% select(-c('id_uea', 'rive', 'id')) #subset dataframe to only select numeric data
+  
   df_PCA <- princomp(df, cor = TRUE, scores = TRUE) #for analysing variables
   
   #Visualising PCA analysis

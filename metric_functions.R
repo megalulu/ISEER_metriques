@@ -118,7 +118,7 @@ PDV_fragementation_metric_function <- function(UREC_full, raster_file, col_name)
     print(paste0('Calculating landscape metrics for iteration ', i, ' with id ', UREC$id ))
     if (check$OK == "✖") {
       area_mn = 0   #Needs to be changed
-      pd = "NA"        #Needs to be changed
+      pd = NA        #Needs to be changed
       
     } else {
       #Calculate landscape metrics
