@@ -40,6 +40,7 @@ library(installr)
 library(terra)
 library(exactextractr)
 library(landscapemetrics)
+library(tidyr)
 #library(whitebox)
 setwd = 'C:/Meghana/Belgique'
 
@@ -96,9 +97,6 @@ continuity_metric <- function(UREC_full, path_sampling, raster_UT, classe_UT) {
   return (UREC_full)
 }
 
-
-
-
 PDV_fragementation_metric_function <- function(UREC_full, raster_file, col_name) {
   #UREC_full = shapefile of UREC (UREC_merge) as sf data.frame
   #raster = raster of Utilisation du territoire masked for values we are interested in. e.g.  <Forest> (need to do this step beforehand , in ArcMap sometimes)
@@ -140,3 +138,62 @@ PDV_fragementation_metric_function <- function(UREC_full, raster_file, col_name)
   return(UREC_full)
 }
 
+
+Indice_Naturalite_functions <-function(UREC_merge, raster_file, csv_class_correspondence ){
+  #UREC_merge = sf file or all spatiale units
+  #raster_file = raster file of utilisation du territoire cliped to only have area covered by spatial units
+  #csv__class_correspondence : group csv of class correspondence between UT classes and IQBR classes (this must have weights) --> then use group_by function with CODE UT column
+  for (r in 1:nrow(UREC_merge)) {
+    shp = UREC_merge[r,]
+    print(paste0('reading', shp$id))
+    shp = st_transform(shp, crs = st_crs(raster_file)) # project vector UREC file to same projection as raster file 
+    ut_shp = terra::crop(raster_file, shp) #Reduce the extent of the ESA raster to the extent of UREC
+    shp_raster = terra::rasterize(shp, ut_shp) #rasterize UREC shapefile by using the esa_clip extent as the extent of the output raster (see docs)
+    ut_mask = terra::mask(ut_shp, shp_raster)
+    
+    #Calculate IQBR for each masked raster area
+    #Get frequency of each class in the raster 
+    freq_dist = freq(ut_mask)
+    freq_dist= as.data.frame(freq_dist)
+    #freq_dist$value = as.data.frame.integer(freq_dist$value) 
+    # join_tbl = left_join(freq_dist, IQBR_UT_2018_correspondence, c('value'='Value')) #raster needs to be loaded with raster library to work 
+    join_tbl = left_join(freq_dist, csv_class_correspondence, c('value'= 'CODE_UT'))
+    join_tbl= na.omit(join_tbl) #remove NA from table
+    total_pix = sum(join_tbl$count) #Count the number of pixels to get proportional coverage
+    join_tbl$perc_coverage = (join_tbl$count/ total_pix)*10
+    join_tbl$IndiceNat = join_tbl$perc_coverage*join_tbl$Poids_IndiceNat
+    indice_Naturalite = sum(join_tbl$IndiceNat)/10
+    
+    #shp$IQBR = indice_IQBR
+    UREC_merge[r,'Indice_Nat'] = indice_Naturalite
+    
+    
+    
+  }
+  return(UREC_merge)
+}
+
+OverhangingCanopy <- function(UREC_water, raster_file, EPSG,  urban_vector_mask){
+  #UREC_water : spatVector file of water surface per UREC that has been reprojected to match raster file projetion and clipped to extent of raster_file (see main)
+  #raster_file : raster file (or vrt) of MHC mosaic split based on projection (either MTM7 or MTM8)
+  #EPSG : Character string of projection. example : "EPSG: 2949"
+  #Urban_vector_mask : Spactvector file of vecotirized urban areas at same resolution as raster_file
+  UREC_water$canopyRatio = NA
+  for (i in 1:nrow(UREC_water)){
+    water =  UREC_water[i,]
+    print(paste0('processing UREC : ', water$id))
+    waters_sf = st_as_sf(water) #load polygon as sf object to be used in exact extract
+    vrt_mhc_mask7_clip = terra::crop(raster_file, water)
+    water_raster = terra::rasterize(water, vrt_mhc_mask7_clip)
+    vrt_mhc_mask7_water = terra::mask(vrt_mhc_mask7_clip, water_raster)
+    porj_urbain = terra::project(urban_vector_mask, EPSG)
+    vrt_mhc_mask7_water_urbain = terra::mask(vrt_mhc_mask7_water, porj_urbain, inverse = T)
+    
+    water$canopySurf =as.numeric(exactextractr::exact_extract(vrt_mhc_mask7_water_urbain, waters_sf, 'count'))
+    water$area = as.numeric(st_area(waters_sf))
+    water$canopyRatio = water$canopySurf/water$area
+    UREC_water[i,]$canopyRatio = water$canopyRatio
+    
+  }
+  return(UREC_water)
+}

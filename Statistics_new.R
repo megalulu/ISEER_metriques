@@ -29,7 +29,7 @@ library(psych)
 ##############################################################################
               #Visualising Correlation matrix between variables
 ##############################################################################
-# df : object Spatvect <-  metrics to do correlation analysis on. Dataframe should only have numeric values and the two columns ('id_uea', 'id_rive')
+# df : object Spatvect <-  metrics to do correlation analysis on. Dataframe should only have numeric values and the two columns ('id_uea', 'id_rive', 'id)
 # var2 : Character string <- Name of the set of metrics you are testing (can be name of ecosystem function)
 # output : res (matrix array) <-table of correlation matrix 
 Correlation_matrix <- function(df, var2) {
@@ -105,7 +105,8 @@ Correlation_matrix <- function(df, var2) {
               #coord (Coordinates on graph of each vector) : #coordinates for the individuals/variables
               #cos2 : cos2 for the individuals/variables
               #contrib :  # contributions of the individuals/variables 
-              # cor : matrix of covariance between variables
+             # cor : matrix of covariance between variables
+df = UREC_ISEER
 PCA_graph_function <- function(df, df_name, axe ){
   library(factoextra)
   
