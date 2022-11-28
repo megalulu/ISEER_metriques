@@ -119,7 +119,7 @@ voronoi = st_voronoi(semis_intersection_sfg)
 plot(voronoi$geometry)
 st_write(semis,'C:/Meghana/Belgique/traitements/UREC_MaxCam/semis2.shp') 
 
-voronoi = st_voronoi(semis) 
+voronoi = st_voronois 
 voronoi = st_cast(voronoi, to = 'MULTIPOLYGON')
 voronoi = st_transform(voronoi, crs(UREC_new))
 voronoi = st_cast(voronoi, to = 'POLYGON')

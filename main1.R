@@ -24,6 +24,11 @@ ut19_classes <- read.csv("C:/Meghana/donnee_brutes/correspondance_indiceNat_ut19
 ut19_classes$CODE_UT = as.numeric(ut19_classes$CODE_UT)
 ut19_groups = ut19_classes %>% group_by(DESC_CAT)
 
+#Correspondence IQBR
+
+IQBR_classes <- read.csv("C:/Meghana/donnee_brutes/IQBR_UT_2019_10m_Correspondence.csv", sep=";")
+IQBR_classes$CODE_UT = as.numeric(IQBR_classes$CODE_UT)
+IQBR_groups = IQBR_classes %>% group_by(DESC_CAT)
 
 
 ################################################################################
@@ -326,6 +331,11 @@ points(UREC_indice$FEContP_Agriculture1, pch = 3, col = 'blue')
 legend("topleft", legend=c("Indice avec poids", " Indice poids egal", 'Metriques de MH'),
        col=c("black", "red", 'blue'), pch =3, cex=0.8)
 
+
+
+
+
+
 #############################################################################################
 #Indice Regulation de la temperature de l'eau
 #############################################################################################
@@ -362,6 +372,7 @@ PtRef_mod_lotique_join = subset(PtRef_mod_lotique_join, Largeur_mod != -999) #re
 PtRef_mod_lotique_join = subset(PtRef_mod_lotique_join, !is.na(Largeur_mod))
 largeur_riviere= PtRef_mod_lotique_join %>% dplyr::group_by(Id_UEA) %>% dplyr::summarize(river_width = mean(Largeur_mod)) #group table by Id_UEA and summarize the column Largeur_mod with median function
 st_write(largeur_riviere, 'C:/Meghana/Belgique/decembre/traitements/pt_ref_largeur_riviere.shp', delete_layer = T) #write the table containing (Id_UEA and median river_width)
+
 largeur_riviere = st_drop_geometry(largeur_riviere)
 #Join table of median width grouped-by Id_UEA with the UEA table
 UEA_larg_mod = dplyr::left_join(UEA_MaxCam,largeur_riviere, by=c('Id_UEA'='Id_UEA')) #choose correct Primary Key!!
@@ -580,6 +591,15 @@ plot(UREC_merge_ombrage_nrm_sub$Indice_ombrage, ylim = c(0,1))
 st_write(UREC_merge_ombrage_nrm_sub, 'C:/Meghana/Belgique/decembre/results/indiceOmbrage.shp')
 st_write(UREC_merge_ombrage_nrm_sub, 'C:/Meghana/Belgique/decembre/results/indiceOmbrage.SQLite')
 save.image()
+#Plot metrics hillshading and canopée en surplomb
+par(xpd=T)
+plot(UREC_merge_ombrage_nrm_sub$canopyratio_new_nrm, xlab = 'Index des unités spatiales', ylab = NA)
+points(UREC_merge_ombrage_nrm_sub$meanombrage_adj_nrm, col = 'red')
+legend("top", inset=c(-0.2,-1), legend=c("A","B"), pch=c(1,3), title="Group")
+legend("topleft", legend=c("Canopée en surplomb", " Indice d'ombrage"),
+       col=c("black", "red"),pch = 1, cex=0.8)
+#Plot indice de régulation de la température de l'eau par l'ombrage
+plot(UREC_merge_ombrage_nrm_sub$Indice_ombrage, ylab = "Indice de régulation de la température de l'eau", xlab = "Unités spatiales", ylim = c(0,1))
 
 #######################################################################################################
 ######################################################################################################
@@ -613,12 +633,42 @@ UREC_ISEER_sf = st_as_sf(UREC_ISEER)
 st_write(UREC_ISEER_sf,'C:/Meghana/Belgique/decembre/results/UREC_ISEER.SQLITE')
 st_write(UREC_ISEER_sf,'C:/Meghana/Belgique/decembre/results/UREC_ISEER.shp')
 #Plot ISEER
-windows(10,5)
-
-plot(UREC_ISEER$ISEER, ylim = c(0,1))
+UREC_ISEER_sf = st_read('C:/Meghana/Belgique/decembre/results/UREC_ISEER.shp')
+plot(UREC_ISEER_sf$ISEER, ylim = c(0,1), ylab = "ISÉÉR préliminaire", xlab = "Unités spatiales",)
 save.image()
 
+#Plot indice de fonction écologique et ISEER
+UREC_contP2 = st_read('C:/Meghana/Belgique/decembre/results/results_new1_indice.SQLite')
+UREC_contP2 = subset(UREC_contP2, select = c( id, conp ))
+df_UREC_contP2 = st_drop_geometry(UREC_contP2)
+UREC_ombrage2 = st_read('C:/Meghana/Belgique/decembre/results/indiceOmbrage.SQLite')
+UREC_ombrage2 = subset(UREC_ombrage2, select = c( id,indice_ombrage))
+UREC_ISEER2 = left_join(UREC_ombrage2,df_UREC_contP2, by = c('id'='id'))
+UREC_ISEER2 = st_drop_geometry(UREC_ISEER2)
+UREC_ISEER2 = left_join(UREC_ISEER2, UREC_ISEER_sf, by = c('id'='id'))
 
+
+plot(UREC_ISEER2$ISEER, ylim = c(0,1), pch = 3, ylab = NA, xlab = "Unités spatiales")
+points(UREC_ISEER2$indice_ombrage, col ="red", pch = 3)
+points(UREC_ISEER2$conp, col ="blue", pch = 3)
+legend("bottomright", legend=c("ISEER", "Indice de connectivité du paysage", "Indice de régulation de la température de l'eau"),
+       col=c("black", "blue", "red"), pch =3, cex=0.8)
+
+#Calculate IQBR for units of ISÉÉR
+UREC_ISEER2_test =UREC_ISEER_sf
+UREC_ISEER2_test = IQBR_functions(UREC_merge = UREC_ISEER2_test, raster_file = ut19_full, csv_class_correspondence = IQBR_classes)
+plot(UREC_ISEER2_test$IQBR)
+UREC_ISEER2_test$IQBR_nrm = (UREC_ISEER2_test$IQBR - min(UREC_ISEER2_test$IQBR))/ (max(UREC_ISEER2_test$IQBR)- min(UREC_ISEER2_test$IQBR))
+plot(UREC_ISEER2_test$IQBR_nrm, ylim = c(0,1))
+points(UREC_ISEER2_test$ISEER, col = 'red')
+#Do correlation between ISEER and IQBR
+UREC_ISEER2_test_sub = subset(UREC_ISEER2_test, select = c(id_uea , rive, id, ISEER, IQBR_nrm))
+UREC_ISEER2_test_sub = vect(UREC_ISEER2_test_sub)
+cor_IQBR_ISEER = Correlation_matrix(df = UREC_ISEER2_test_sub, var2 = "IQBR vs ISEER")
+plot(UREC_ISEER2_test_sub$ISEER, ylim = c(0,1), ylab = "Indices", xlab = "Unités spatiales", pch = 3)
+points(UREC_ISEER2_test_sub$IQBR_nrm, pch = 3, col = "red")
+legend("bottomright", legend=c("ISEER", "IQBR"),
+       col=c("black", "red"), pch =3, cex=0.8)
 #############################################################################
 #Some preprocessing for getting data ready
 path_sampling = 'C:/Meghana/Belgique/traitements/results/sampling_rives/'

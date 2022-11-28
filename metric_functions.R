@@ -42,7 +42,7 @@ library(exactextractr)
 library(landscapemetrics)
 library(tidyr)
 #library(whitebox)
-setwd = 'C:/Meghana/Belgique'
+
 
 
 LateralWidthFunction <- function(rives, voronoi){
@@ -60,9 +60,10 @@ LateralWidthFunction <- function(rives, voronoi){
 
 
 continuity_metric <- function(UREC_full, path_sampling, raster_UT, classe_UT) {
-  #var1 = shapefile of UREC (UREC_merge) as sf data.frame
-  #raster_UT = raster of Utilisation du territoire masked for values we are interested in. e.g.  <Forest> (need to do this step beforehand , in ArcMap sometimes)
-  # var 3  = character string of name of colum referencing the specific UT selection eg. "Forest" 
+  #UREC_full = shapefile of UREC (UREC_merge) as sf data.frame
+  #path_sampling : character string leading to folder where the individual sampling files are for each UREC. 
+  #raster_UT = raster of Utilisation du territoire masked for values we are interested in. e.g.  <Forest, Milieu humide> (need to do this step beforehand , in ArcMap sometimes)
+  # classe_UT = character string of name of the new colum referencing the specific UT selection eg. "Vegetation Optimale" 
   list_files_sampling_rive = list.files(path = path_sampling, pattern = '*.shp', full.names = T)
   new_col_name = paste0('continuity_', classe_UT)
   
@@ -100,7 +101,7 @@ continuity_metric <- function(UREC_full, path_sampling, raster_UT, classe_UT) {
 PDV_fragementation_metric_function <- function(UREC_full, raster_file, col_name) {
   #UREC_full = shapefile of UREC (UREC_merge) as sf data.frame
   #raster = raster of Utilisation du territoire masked for values we are interested in. e.g.  <Forest> (need to do this step beforehand , in ArcMap sometimes)
-  # cil_name  = character string of name of colum referencing the specific UT selection eg. "Forest" 
+  #col_name  = character string of name of colum referencing the specific UT selection eg. "Forest" 
   area_new_col = paste0('area_', col_name)
   pd_new_col = paste0('pd_', col_name)
   raster_file[!is.na(raster_file)] <-1
@@ -140,7 +141,7 @@ PDV_fragementation_metric_function <- function(UREC_full, raster_file, col_name)
 
 
 Indice_Naturalite_functions <-function(UREC_merge, raster_file, csv_class_correspondence ){
-  #UREC_merge = sf file or all spatiale units
+  #UREC_merge = sf file of all spatiale units
   #raster_file = raster file of utilisation du territoire cliped to only have area covered by spatial units
   #csv__class_correspondence : group csv of class correspondence between UT classes and IQBR classes (this must have weights) --> then use group_by function with CODE UT column
   for (r in 1:nrow(UREC_merge)) {
@@ -173,6 +174,12 @@ Indice_Naturalite_functions <-function(UREC_merge, raster_file, csv_class_corres
   return(UREC_merge)
 }
 
+
+# UREC_water = UREC_water_merge_proj
+# raster_file = mhc_vrt
+# EPSG = 'EPSG:2949'
+# urban_vector_mask = mask_urbain_vectoriel
+# i = 1
 OverhangingCanopy <- function(UREC_water, raster_file, EPSG,  urban_vector_mask){
   #UREC_water : spatVector file of water surface per UREC that has been reprojected to match raster file projetion and clipped to extent of raster_file (see main)
   #raster_file : raster file (or vrt) of MHC mosaic split based on projection (either MTM7 or MTM8)
@@ -183,11 +190,13 @@ OverhangingCanopy <- function(UREC_water, raster_file, EPSG,  urban_vector_mask)
     water =  UREC_water[i,]
     print(paste0('processing UREC : ', water$id))
     waters_sf = st_as_sf(water) #load polygon as sf object to be used in exact extract
-    vrt_mhc_mask7_clip = terra::crop(raster_file, water)
-    water_raster = terra::rasterize(water, vrt_mhc_mask7_clip)
+    
+    vrt_mhc_mask7_clip = terra::crop(raster_file, waters_sf)
+    water_raster = terra::rasterize(waters_sf, vrt_mhc_mask7_clip)
     vrt_mhc_mask7_water = terra::mask(vrt_mhc_mask7_clip, water_raster)
     porj_urbain = terra::project(urban_vector_mask, EPSG)
-    vrt_mhc_mask7_water_urbain = terra::mask(vrt_mhc_mask7_water, porj_urbain, inverse = T)
+    proj_urbain_sf = st_as_sf(porj_urbain)
+    vrt_mhc_mask7_water_urbain = terra::mask(vrt_mhc_mask7_water, proj_urbain_sf, inverse = T)
     
     water$canopySurf =as.numeric(exactextractr::exact_extract(vrt_mhc_mask7_water_urbain, waters_sf, 'count'))
     water$area = as.numeric(st_area(waters_sf))
@@ -196,4 +205,39 @@ OverhangingCanopy <- function(UREC_water, raster_file, EPSG,  urban_vector_mask)
     
   }
   return(UREC_water)
+}
+
+
+IQBR_functions <-function(UREC_merge, raster_file, csv_class_correspondence ){
+  #UREC_merge = sf file of all spatiale units
+  #raster_file = raster file of utilisation du territoire cliped to only have area covered by spatial units
+  #csv__class_correspondence : group csv of class correspondence between UT classes and IQBR classes (this must have weights) --> then use group_by function with CODE UT column
+  for (r in 1:nrow(UREC_merge)) {
+    shp = UREC_merge[r,]
+    print(paste0('reading', shp$id))
+    shp = st_transform(shp, crs = st_crs(raster_file)) # project vector UREC file to same projection as raster file 
+    ut_shp = terra::crop(raster_file, shp) #Reduce the extent of the ESA raster to the extent of UREC
+    shp_raster = terra::rasterize(shp, ut_shp) #rasterize UREC shapefile by using the esa_clip extent as the extent of the output raster (see docs)
+    ut_mask = terra::mask(ut_shp, shp_raster)
+    
+    #Calculate IQBR for each masked raster area
+    #Get frequency of each class in the raster 
+    freq_dist = freq(ut_mask)
+    freq_dist= as.data.frame(freq_dist)
+    #freq_dist$value = as.data.frame.integer(freq_dist$value) 
+    # join_tbl = left_join(freq_dist, IQBR_UT_2018_correspondence, c('value'='Value')) #raster needs to be loaded with raster library to work 
+    join_tbl = left_join(freq_dist, csv_class_correspondence, c('value'= 'CODE_UT'))
+    join_tbl= na.omit(join_tbl) #remove NA from table
+    total_pix = sum(join_tbl$count) #Count the number of pixels to get proportional coverage
+    join_tbl$perc_coverage = (join_tbl$count/ total_pix)*10
+    join_tbl$IQBR = join_tbl$perc_coverage*join_tbl$Poids_IQBR
+    indice_IQBR = sum(join_tbl$IQBR)/10
+    
+    #shp$IQBR = indice_IQBR
+    UREC_merge[r,'IQBR'] = indice_IQBR
+    
+    
+    
+  }
+  return(UREC_merge)
 }

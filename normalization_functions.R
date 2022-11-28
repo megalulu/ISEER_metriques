@@ -1,5 +1,11 @@
 #Script to Normalized data  with  min and max 
 
+
+
+UREC_norm = UREC_merge_norm
+col_names = c('pd_vegetation_optimale_nrm')
+col = col_names[1]
+n=1
 #Do normalisation with min and max of data
 Normalization_function <- function(UREC_merge) {
   UREC_norm = UREC_merge
@@ -60,23 +66,24 @@ Normalization_function <- function(UREC_merge) {
 
 
 
-
-#Function to inverse patch density rows 
+#Function to inverse patch density rows
 New_inverse_fun <- function(UREC_norm , col_names) {
   #UREC_norm : sf dataframe that has the normalized columns to be inversed (thoses linked with patch density : pd_....)
   #col_names : vector of characters with names of columns that need to be inversed. The columns have to present in UREC_norm
-
-  #converting sf object into dataframe with a seperate geometry 
+  
+  #converting sf object into dataframe with a seperate geometry
   UREC_norm$ext_geometry = st_geometry(UREC_norm) #Extract geometry  into a new column
   UREC_norm = st_drop_geometry(UREC_norm) #Drop geometry drops geometry column
-#iterate through the column names 
+  #iterate through the column names
   for (col in col_names) {
     table = select(UREC_norm, all_of(col)) #extract only one column from UREC_norm
-    for (n in 1:nrow(table)) { #Iterate through the rows
-      if (is.na(table[n, col])) { #if the value at row n and column "col" is NA 
+    for (n in 1:nrow(table)) {
+      #Iterate through the rows
+      if (is.na(table[n,col])) {
+        #if the value at row n and column "col" is NA
         UREC_norm[n, col] = 0 #then give it a value of 0
       } else{
-        UREC_norm[n, col] = -1 * (UREC_norm[n, col]) + 1 #otherwise inverse the values 
+        UREC_norm[n, col] = -1*(UREC_norm[n, col]) + 1 #otherwise inverse the values
       }
     }
   }
@@ -86,8 +93,10 @@ New_inverse_fun <- function(UREC_norm , col_names) {
   UREC_norm = st_drop_geometry(UREC_norm)
   UREC_norm = st_set_geometry(UREC_norm, UREC_norm$geometry)
   
-
+  return(UREC_norm)
   
 }
+
+
 
 
