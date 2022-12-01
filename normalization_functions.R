@@ -2,10 +2,10 @@
 
 
 
-UREC_norm = UREC_merge_norm
-col_names = c('pd_vegetation_optimale_nrm')
-col = col_names[1]
-n=1
+# UREC_norm = UREC_merge_norm
+# col_names = c('pd_vegetation_optimale_nrm')
+# col = col_names[1]
+# n=1
 #Do normalisation with min and max of data
 Normalization_function <- function(UREC_merge) {
   UREC_norm = UREC_merge

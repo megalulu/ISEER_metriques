@@ -146,20 +146,10 @@ for (i in 1:length(list_file_water_surface)) {
 }
 
 
-#############################################################################
-#Calcul des metriques liee a l'indice de regulation de la temperature de l'eau
-#####################
-ombrage_path = 'C:/Meghana/TUTO/Traitements/ombrage/' #chemin d'access vers le raster d'ombrage
-raster_ombrage = raster(paste0(ombrage_path, 'ombrage_MNS_21L13SE.tif')) #Charger le raster ombrage
-
-#La prochaine etape n'a besoin d'etre fait qu'une fois
-#Creation du vrt 
-ombrage_list_file = list.files(ombrage_path,pattern="*.tif$",full.names=TRUE) #creer une liste des fichiers dans le dossier ombrage (dans le tutoriel ce n'est qu'un fichier)
-ombrage_file_vrt = paste0(ombrage_path, 'ombrage.vrt')
-terra::vrt(ombrage_list_file, filename=ombrage_file_vrt, options=NULL, overwrite=FALSE) #creation du vrt !!! Il faut travailler avec le vrt quand le raster est tres grand, sinon la computation ne sera pas possible !!!
-
-#charger le VRT
-ombrage_vrt = raster::raster(ombrage_file_vrt)
+#Canope en surplomb sur la riviere
+################################################
+#preprocessing
+###############
 
 #Fusionner toutes les UREC_riviere en un fichier:
 list_files_UREC_water = list.files(path_Riviere_UREC, pattern = "*.shp$", full.names = T)
@@ -170,11 +160,7 @@ for (i in 2:length(list_files_UREC_water)){
 }
 st_write(UREC_water_merge,'C:/Meghana/TUTO/Donnees/UREC_water_merge.shp') #Ecrire le fichier contenant toutes les UREC_water_merge dans donnees
 
-#Extraction des moyenne des valeurs de l'ombrage par unite spatiales
-UREC_ombrage = UREC_water_merge
-UREC_ombrage=st_transform(UREC_ombrage, st_crs(ombrage_vrt))
-UREC_ombrage$meanOmbr1 = exactextractr::exact_extract(ombrage_vrt,UREC_ombrage, 'mean')
-st_write(UREC_ombrage, 'C:/Meghana/TUTO/Traitements/ombrage/UREC_water_ombrage.sqlite', delete_layer  = T)
+
 
 #Canope en surplomb sur la riviere
 ################################################
@@ -207,32 +193,24 @@ UREC_water_merge_proj = terra::crop(UREC_water_merge_proj, etendu_mhc) #Couper l
 
 #Run OverhangingCanopy function on water merged 
 UREC_water_merge_proj = OverhangingCanopy(UREC_water = UREC_water_merge_proj, raster_file = mhc_vrt, EPSG = 'EPSG:2949',urban_vector_mask = mask_urbain_vectoriel)
-UREC_water_merge_proj = st_as_sf(UREC_water_merge_proj)
-st_write(UREC_water_merge_proj, 'C:/Meghana/TUTO/Traitements/UREC_water_Canopee.sqlite') #ecrire les resultats de la canopee en surplomb
+UREC_water_merge_proj$Id_UEA = UREC_water_merge_proj$Id_UEA_1
+UREC_water_merge_proj = subset(UREC_water_merge_proj, selec = c(Id_UEA,rive, id, canopyRatio))
+st_write(UREC_water_merge_proj, 'C:/Meghana/TUTO/Traitements/UREC_water_Canopee.sqlite', delete_layer = T) #ecrire les resultats de la canopee en surplomb
 
 
-###################################################################]
-#Creation de l'indice de regulation de la temperature de l'eau par l'ombrage
-###########################
-#Joindre les metriques de la canopee en surplomb a ceux de l'indice d'ombrage 
-UREC_water_merge_proj_sf = st_as_sf(UREC_water_merge_proj)
-UREC_water_merge_proj_sub = subset(UREC_water_merge_proj_sf,  select = c(id, canopyRatio)) #Faire une sous selection de l'id et de la metrique qui nous interesse (canopyRatio)
-UREC_water_merge_proj_sub = st_drop_geometry(UREC_water_merge_proj_sub) #enlever la geometrie de l'object sf pour le transformer en dataframe
-UREC_merge_Indiceombrage = UREC_ombrage
-UREC_merge_Indiceombrage = left_join(UREC_merge_Indiceombrage,UREC_water_merge_proj_sub, by = c('id'='id') )
-UREC_merge_Indiceombrage$Id_UEA = UREC_merge_Indiceombrage$Id_UEA_1
-UREC_merge_Indiceombrage = subset(UREC_merge_Indiceombrage, select = c(Id_UEA, rive, id,meanOmbr1, canopyRatio                       ))
-st_write(UREC_merge_Indiceombrage, 'C:/Meghana/TUTO/Resultats/resultats_metrique_IndiceOmbrage.sqlite', delete_layer = T) #Ecrire les resultats des metriques de l'indice d'ombrage
-
-
-UREC_merge_IndiceRegTemp_norm = st_read( 'C:/Meghana/TUTO/Resultats/resultats_metrique_IndiceOmbrage.sqlite')
-UREC_merge_IndiceRegTemp_norm$meanombr1 = UREC_merge_IndiceRegTemp_norm$meanombr1/255  #La metrique d'ombrage  a des valeurs entre 1-255. Elle doit etre ramener a des valeurs entre 0 et 1
+###########################################################################
+#CREATION DE L'INDICE DE REGULATION DE LA TEMPERATURE DE L'EAU
+######################################################################
 #Normalisation des metriques d'ombrage (il n'a pas besoin de faire l'verse ici puisqu'aucune des metriques n'est le taux de dispersions)
 UREC_merge_IndiceRegTemp_norm = Normalization_function(UREC_merge_IndiceRegTemp_norm)
 
+UREC_merge_IndiceRegTemp_norm = st_read( 'C:/Meghana/TUTO/Traitements/UREC_water_Canopee.sqlite')
+UREC_merge_IndiceRegTemp_norm = Normalization_function(UREC_merge_IndiceRegTemp_norm)
+
+
 #Creation de l'indice de la fonction de la regulation de la temperature de l'eau. 
-UREC_merge_IndiceRegTemp_norm$Indice_regulation_temp = (UREC_merge_IndiceRegTemp_norm$canopyratio_nrm +
-                                                  UREC_merge_IndiceRegTemp_norm$meanombr1_nrm)/2
+UREC_merge_IndiceRegTemp_norm$Indice_regulation_temp = UREC_merge_IndiceRegTemp_norm$canopyratio_nrm
+                                                  
 st_write(UREC_merge_IndiceRegTemp_norm, 'C:/Meghana/TUTO/Resultats/resultats_metrique_Norm_IndiceOmbrage.sqlite', delete_layer = T)
 
 
@@ -240,15 +218,16 @@ st_write(UREC_merge_IndiceRegTemp_norm, 'C:/Meghana/TUTO/Resultats/resultats_met
 #Creation de l'Indice ISEER preliminaire
 #################################
 IndiceRegTemp = st_read('C:/Meghana/TUTO/Resultats/resultats_metrique_Norm_IndiceOmbrage.sqlite') #lire les fichier avec les resultats de l'indice de regulation de la temperature de l'eau
-IndiceRegTemp = subset(IndiceRegTemp, select = c(id, indice_regulation_temp                       ))
+IndiceRegTemp = subset(IndiceRegTemp, select = c(id, canopyratio_nrm                       ))
 IndiceConP = st_read('C:/Meghana/TUTO/Resultats/resultats_indice_Norm_IndiceConnectivitePaysage.sqlite') #Lire les fichiers avec les resultats de l'indice de connectibite du paysage
-IndiceConP = subset(IndiceConP, select = c(id,conp                       ))
+IndiceConP = subset(IndiceConP, select = c(id,pd_vegetation_optimale_nrm,continuity_vegetation_optimale_nrm                     ))
 IndiceConP_df = st_drop_geometry(IndiceConP) #transformer objet sf en dataframe
 
 ISEER = left_join(IndiceRegTemp, IndiceConP_df, by = c('id' = 'id')) #joindre les deux indice de fonction ecologique pour faciliter le calcul de l'ISER
-ISEER$ISEER = (ISEER$indice_regulation_temp +
-                 ISEER$conp)/2
-st_write(ISEER,'C:/Meghana/TUTO/Resultats/ISEER_preliminaire.sqlite')
+ISEER$ISEER = (ISEER$continuity_vegetation_optimale_nrm +
+                 ISEER$pd_vegetation_optimale_nrm+
+                 ISEER$canopyratio_nrm)/3
+st_write(ISEER,'C:/Meghana/TUTO/Resultats/ISEER_preliminaire.sqlite', delete_layer = T)
 
 
 

@@ -45,9 +45,9 @@ for( i in 1:length(list_file_mhc_vrt)){
 ################################
 #Build vrt of MHC_masks
 
-mhc_mask_files = list.files('C:/Meghana/Belgique/decembre/traitements/MHC_mask/MTM8/', pattern = '*.tif', full.names = T)
-output_mhc_mask = 'C:/Meghana/Belgique/decembre/traitements/MHC_mask/MTM8/mhc8_mask.vrt'
-terra::vrt(mhc_mask_files, filename=output_mhc_mask, options=NULL, overwrite=FALSE)
+mhc_mask_files = list.files('C:/Meghana/Belgique/decembre/traitements/MHC_mask/', pattern = '*.tif', full.names = T)
+output_mhc_mask = 'C:/Meghana/Belgique/decembre/traitements/MHC_mask/mhc7_mask.vrt'
+terra::vrt(mhc_mask_files, filename=output_mhc_mask, options=NULL, overwrite=TRUE)
 
 #Build VRT file of MNS
 mns_path = 'C:/Meghana/Belgique/decembre/traitements/MNS_mask/'

@@ -468,14 +468,14 @@ pdv_results_rastMH = PDV_continuity_metric(
 pdv_results_rastMH = PDV_continuity_metric(
   UREC_full = pdv_results_rastMH,
   UREC_sampling = sampling_units,
-  raster_file = rastMH,
+  raster_file = rastF,
   classe_UT = 'MH'
 )
 
 pdv_results_rastMH = PDV_fragementation_metric_function(UREC_full = pdv_results_rastMH,raster_file = rastMH_F, col_name = 'Forest' )
 pdv_results_rastMH = PDV_fragementation_metric_function(UREC_full = pdv_results_rastMH,raster_file = rastMH_A, col_name = 'Agricole' )
 pdv_results_rastMH = PDV_fragementation_metric_function(UREC_full = pdv_results_rastMH,raster_file = rastMH_V, col_name = 'Vegetation' )
-pdv_results_rastMH = PDV_fragementation_metric_function(UREC_full = pdv_results_rastMH,raster_file = rastMH, col_name = 'MH' )
+pdv_results_rastMH = PDV_fragementation_metric_function(UREC_full = pdv_results_rastMH,raster_file = rastF, col_name = 'MH' )
 pdv_results_rastMH = PDV_Naturality_index_function(UREC_Nat = pdv_results_rastMH, raster_file = rastMH)
 # pdv_results_rastMH = subset(pdv_results_rastMH, select = c(id, geometry, continuity_Forest, continuity_Vegetation,
 #                                                            continuity_Agricole, continuity_MH, pd_Forest,
@@ -535,7 +535,7 @@ pdv_results_rastA = PDV_continuity_metric(
 pdv_results_rastA = PDV_continuity_metric(
   UREC_full = pdv_results_rastA,
   UREC_sampling = sampling_units,
-  raster_file = rastA,
+  raster_file = rastF,
   classe_UT = 'Agricole'
 )
 pdv_results_rastA = PDV_continuity_metric(
@@ -546,7 +546,7 @@ pdv_results_rastA = PDV_continuity_metric(
 )
 
 pdv_results_rastA = PDV_fragementation_metric_function(UREC_full = pdv_results_rastA,raster_file = rastA_F, col_name = 'Forest' )
-pdv_results_rastA = PDV_fragementation_metric_function(UREC_full = pdv_results_rastA,raster_file = rastA, col_name = 'Agricole' )
+pdv_results_rastA = PDV_fragementation_metric_function(UREC_full = pdv_results_rastA,raster_file = rastF, col_name = 'Agricole' )
 pdv_results_rastA = PDV_fragementation_metric_function(UREC_full = pdv_results_rastA,raster_file = rastA_V, col_name = 'Vegetation' )
 pdv_results_rastA = PDV_fragementation_metric_function(UREC_full = pdv_results_rastA,raster_file = rastA_MH, col_name = 'MH' )
 pdv_results_rastA = PDV_Naturality_index_function(UREC_Nat = pdv_results_rastA, raster_file = rastA )

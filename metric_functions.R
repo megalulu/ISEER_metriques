@@ -192,6 +192,7 @@ OverhangingCanopy <- function(UREC_water, raster_file, EPSG,  urban_vector_mask)
     waters_sf = st_as_sf(water) #load polygon as sf object to be used in exact extract
     
     vrt_mhc_mask7_clip = terra::crop(raster_file, waters_sf)
+    vrt_mhc_mask7_clip = vrt_mhc_mask7_clip[vrt_mhc_mask7_clip>1.5]
     water_raster = terra::rasterize(waters_sf, vrt_mhc_mask7_clip)
     vrt_mhc_mask7_water = terra::mask(vrt_mhc_mask7_clip, water_raster)
     porj_urbain = terra::project(urban_vector_mask, EPSG)

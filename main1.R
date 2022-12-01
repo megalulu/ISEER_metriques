@@ -441,9 +441,9 @@ for (i in 2:length(list_files_UREC_water)){
   UREC_water_merge =rbind(UREC_water_merge, water_rive)
 }
 st_write(UREC_water_merge,'C:/Meghana/Belgique/traitements/results/surface_eau_mod/UREC_water/UREC_water_MaxCam/merge/UREC_water_merge.shp' )
-
+UREC_water_merge = st_read('C:/Meghana/Belgique/traitements/results/surface_eau_mod/UREC_water/UREC_water_MaxCam/merge/UREC_water_merge.shp')
 test_ombrage = UREC_water_merge
-test_ombrage=st_transform(test_ombrage, st_crs(ombrage2))
+test_ombrage=st_transform(test_ombrage, st_crs(ombrage3))
 test_ombrage$meanOmbr1 = exactextractr::exact_extract(ombrage1, test_ombrage, 'mean')
 test_ombrage$meanOmbr2 = exactextractr::exact_extract(ombrage2, test_ombrage, 'mean')
 test_ombrage$meanOmbr3 = exactextractr::exact_extract(ombrage3, test_ombrage, 'mean')
@@ -491,6 +491,7 @@ vrt_mhc_mask7 = rast('C:/Meghana/Belgique/decembre/traitements/MHC_mask/mhc7_mas
 #vrt_mhc_mask7_proj = terra::project(vrt_mhc_mask7, mask_urbain)
 #writeRaster(vrt_mhc_mask7_proj,'C:/Meghana/Belgique/decembre/traitements/MHC_mask/mhc7_proj_mask.tif' )
 vrt_mhc_mask8 = rast('C:/Meghana/Belgique/decembre/traitements/MHC_mask/MTM8/mhc8_mask.vrt')
+#vrt_mhc_mask8 = vrt_mhc_mask8[vrt_mhc_mask8<1.5]<-NA
 #vrt_mhc_mask8_proj = terra::project(vrt_mhc_mask8, mask_urbain)
 
 
@@ -506,7 +507,8 @@ UREC_water_merge_v8 = terra::project(UREC_water_merge_vect, 'EPSG:2950')
 #UREC_mergev7 = terra::project(UREC_merge, 'EPSG:2949')
 #UREC_mergev8 = terra::project(UREC_merge, 'EPSG:2950')
 #Clip UREC_v 7 and 8 to extent of mhc7 and 8 
-UREC_water_merge_v7 = terra::crop(UREC_water_merge_v7, etendu7) #Cropped UREC_v7 to only include UREC that overlay the extent of raster mhc7
+UREC_water_merge_v7 = terra::crop(UREC_water_merge_v7, etendu7)#Cropped UREC_v7 to only include UREC that overlay the extent of raster mhc7
+writeVector(UREC_water_merge_v7,'C:/Meghana/Belgique/decembre/traitements/UREC_water_merge_v7_clip.shp' )
 #UREC_water_merge_v7$CanopyRatio =NA
 UREC_water_merge_v8 = terra::crop(UREC_water_merge_v8, etendu8)
 #UREC_water_merge_v8$CanopyRatio =NA
@@ -517,62 +519,66 @@ i = 1
 
 #Run OverhangingCanopy function on water merged 
 UREC_water_merge_v7 = OverhangingCanopy(UREC_water = UREC_water_merge_v7, raster_file = vrt_mhc_mask7, EPSG = 'EPSG:2949', urban_vector_mask = mask_urbain_vectoriel)
+writeVector(UREC_water_merge_v7,'C:/Meghana/Belgique/decembre/results/canopeMTM7.shp' )
+
 UREC_water_merge_v8 = OverhangingCanopy(UREC_water = UREC_water_merge_v8, raster_file = vrt_mhc_mask8, EPSG = 'EPSG:2950', urban_vector_mask = mask_urbain_vectoriel)
-
+writeVector(UREC_water_merge_v8,'C:/Meghana/Belgique/decembre/results/canopeMTM8.shp' )
 #join UREC_water_merge_v7 and v8 to UREC_merge 
-UREC_water_merge_v7_sub = UREC_water_merge_v7
-UREC_water_merge_v7_sub = st_as_sf(UREC_water_merge_v7_sub)
-UREC_water_merge_v7_sub = st_drop_geometry(UREC_water_merge_v7_sub)
-UREC_water_merge_v7_sub = subset(UREC_water_merge_v7_sub, select = c(id, canopyRatio))
+UREC_water_merge_v8 = st_read('C:/Meghana/Belgique/decembre/results/canopeMTM8.shp')
+UREC_water_merge_v7 = st_read('C:/Meghana/Belgique/decembre/results/canopeMTM7.shp')
+UREC_water_merge_v7_proj = st_transform(UREC_water_merge_v7,crs = st_crs(UREC_water_merge_v8) )
 
-
+UREC_canopy = rbind(UREC_water_merge_v7_proj,UREC_water_merge_v8)
+st_write(UREC_canopy, 'C:/Meghana/Belgique/decembre/results/UREC_metric_canope_full.shp')
+UREC_canopy = st_read('C:/Meghana/Belgique/decembre/results/UREC_metric_canope_full.shp')
+UREC_canopy = st_drop_geometry(UREC_canopy)
+UREC_canopy = subset(UREC_canopy, select = c(Id_UEA,rive,id,canopyRati ))
+UREC_canopy = na.omit(UREC_canopy)
+#open UREC_ avec metric d'indice d'ombrage
+UREC_merge_omrbage = st_read('C:/Meghana/Belgique/decembre/traitements/UREC_merge_ombrage.SQLite')
 
 UREC_merge_omrbage_test = UREC_merge_omrbage
-UREC_merge_omrbage_test = left_join(UREC_merge_omrbage_test,UREC_water_merge_v7_sub, by = c('id'='id') )
+UREC_merge_omrbage_test = subset(UREC_merge_omrbage_test, selec = c(id,meanombrage_adj ))
+UREC_merge_omrbage_test = na.omit(UREC_merge_omrbage_test)
 
-UREC_water_merge_v8_sub = UREC_water_merge_v8
-UREC_water_merge_v8_sub = st_as_sf(UREC_water_merge_v8_sub)
-UREC_water_merge_v8_sub = st_drop_geometry(UREC_water_merge_v8_sub)
-UREC_water_merge_v8_sub = subset(UREC_water_merge_v8_sub, select = c(id, canopyRatio))
-UREC_water_merge_v8_sub$canopyRatioMTM8 = UREC_water_merge_v8_sub$canopyRatio 
-UREC_water_merge_v8_sub = subset(UREC_water_merge_v8_sub, select = c(id, canopyRatioMTM8))
-UREC_merge_omrbage_test = left_join(UREC_merge_omrbage_test,UREC_water_merge_v8_sub, by = c('id'='id') )
-
+#merge both data sets for both metrics 
+UREC_merge_omrbage_test = left_join(UREC_merge_omrbage_test,UREC_canopy, by = c('id'='id') )
+st_write(UREC_merge_omrbage_test,'C:/Meghana/Belgique/decembre/results/UREC_metrics_Indice_RegTemp.sqlite' )
 #set new column name of UREC_merge and set all values to NA
 UREC_merge_omrbage_test$CanopyRatio_new = NA
-#for loop to put values from both canopyRatio mtm7 and mtm8 into new column
-for (i in 1:nrow(UREC_merge_omrbage_test)){
-  new_val = NA #set empty variable
-  #row = test[i,]
-  if (!is.na(UREC_merge_omrbage_test[i,]$canopyRatio)){#check that value of row at column canopyRatio is not NA
-    new_val = UREC_merge_omrbage_test[i,]$canopyRatio #set new variable to that value
-  }
-  if (!is.na(UREC_merge_omrbage_test[i,]$canopyRatioMTM8)){#otherwise check that value of row at column canopyRatioMTM8 is not NA
-    new_val = UREC_merge_omrbage_test[i,]$canopyRatioMTM8 #set new variable to that value
-  }
-  UREC_merge_omrbage_test[i,]$CanopyRatio_new = new_val #set new value to the row at column created previoulsy
-}
+# #for loop to put values from both canopyRatio mtm7 and mtm8 into new column
+# for (i in 1:nrow(UREC_merge_omrbage_test)){
+#   new_val = NA #set empty variable
+#   #row = test[i,]
+#   if (!is.na(UREC_merge_omrbage_test[i,]$canopyRatio)){#check that value of row at column canopyRatio is not NA
+#     new_val = UREC_merge_omrbage_test[i,]$canopyRatio #set new variable to that value
+#   }
+#   if (!is.na(UREC_merge_omrbage_test[i,]$canopyRatioMTM8)){#otherwise check that value of row at column canopyRatioMTM8 is not NA
+#     new_val = UREC_merge_omrbage_test[i,]$canopyRatioMTM8 #set new variable to that value
+#   }
+#   UREC_merge_omrbage_test[i,]$CanopyRatio_new = new_val #set new value to the row at column created previoulsy
+# }
 
-st_write(UREC_merge_omrbage_test,'C:/Meghana/Belgique/decembre/results/UREC_merge_ombrage1.shp' )
-st_write(UREC_merge_omrbage_test,'C:/Meghana/Belgique/decembre/results/UREC_merge_ombrage1.SQLite' )
+#st_write(UREC_merge_omrbage_test,'C:/Meghana/Belgique/decembre/results/UREC_merge_ombrage1.shp' )
+#st_write(UREC_merge_omrbage_test,'C:/Meghana/Belgique/decembre/results/UREC_merge_ombrage1.SQLite' )
 
 #################################################################################################
 #Normalise metrics for indice d'ombrage
 #####################
-UREC_merge_ombrage_nrm = st_read('C:/Meghana/Belgique/decembre/results/UREC_merge_ombrage1.SQLite')
+UREC_merge_ombrage_nrm = st_read('C:/Meghana/Belgique/decembre/results/UREC_metrics_Indice_RegTemp.sqlite')
 
-UREC_merge_ombrage_nrm = subset(UREC_merge_ombrage_nrm, select = c(id, rive, id_uea, meanombrage_adj, canopyratio_new))
+UREC_merge_ombrage_nrm = subset(UREC_merge_ombrage_nrm, select = c(id, rive, id_uea, meanombrage_adj, canopyrati))
 UREC_merge_ombrage_nrm = Normalization_function(UREC_merge_ombrage_nrm)
 
 ####################################################################################
 #Do statistics on metrics
 stats_ombrage = UREC_merge_ombrage_nrm
 stats_ombrage_na = na.omit(stats_ombrage)
-stats_ombrage_sub = stats_ombrage_na[, c('id', 'rive', 'id_uea','meanombrage_adj_nrm','canopyratio_new_nrm')]
+stats_ombrage_sub = stats_ombrage_na[, c('id', 'rive', 'id_uea','meanombrage_adj_nrm','canopyrati_nrm')]
 stats_ombrage_sub = vect(stats_ombrage_sub)
 
 stats_ombrage$meanombrage_adj_nrm = as.numeric(stats_ombrage$meanombrage_adj_nrm)
-stats_ombrage$canopyratio_new_nrm = as.numeric(stats_ombrage$canopyratio_new_nrm )
+stats_ombrage$canopyratio_new_nrm = as.numeric(stats_ombrage$canopyrati_nrm )
 
 stats_ombrage_na = na.omit(stats_ombrage_sub)
 stats_ombrage_na = st_drop_geometry(stats_ombrage_na)
@@ -581,15 +587,15 @@ cor_ombrage = Correlation_matrix(df = stats_ombrage_na, var2 = 'Canopy and hills
 pca_ombrage_df = stats_ombrage_na[stats_ombrage_na, c('meanombrage_adj_nrm', 'canopyratio_new_nrm')]
 pca_ombrage = PCA_graph_function(df = stats_ombrage_sub, df_name = 'Canopy and hillshading', axe = c(1,2))
 #######################################################################################
-#Make ombrage index based on results of statstics (we keep both metrics because they explain different parts of the variability and are not very correlated)
-UREC_merge_ombrage_nrm$Indice_ombrage = (UREC_merge_ombrage_nrm$canopyratio_new_nrm +
-                                           UREC_merge_ombrage_nrm$meanombrage_adj_nrm)/2
+#Make ombrage index based on results of statstics (we only keep the metric of overhanging canopy
+UREC_merge_ombrage_nrm$Indice_ombrage = UREC_merge_ombrage_nrm$canopyrati_nrm
+                                          
 
 #plot(UREC_merge_ombrage_nrm$Indice_ombrage)
 UREC_merge_ombrage_nrm_sub = na.omit(UREC_merge_ombrage_nrm)
 plot(UREC_merge_ombrage_nrm_sub$Indice_ombrage, ylim = c(0,1))
-st_write(UREC_merge_ombrage_nrm_sub, 'C:/Meghana/Belgique/decembre/results/indiceOmbrage.shp')
-st_write(UREC_merge_ombrage_nrm_sub, 'C:/Meghana/Belgique/decembre/results/indiceOmbrage.SQLite')
+st_write(UREC_merge_ombrage_nrm, 'C:/Meghana/Belgique/decembre/results/indiceRegTemp.shp', delete_layer = T)
+st_write(UREC_merge_ombrage_nrm, 'C:/Meghana/Belgique/decembre/results/indiceRegTemp.SQLite', delete_layer = T)
 save.image()
 #Plot metrics hillshading and canopée en surplomb
 par(xpd=T)
@@ -609,11 +615,10 @@ plot(UREC_merge_ombrage_nrm_sub$Indice_ombrage, ylab = "Indice de régulation de
 UREC_contP = st_read('C:/Meghana/Belgique/decembre/results/results_new1_indice.SQLite')
 UREC_contP = subset(UREC_contP, select = c( id, continuity_vegetation_optiamle_nrm , pd_vegetation_optimale_nrm ,indice_nat_nrm))
 df_UREC_contP = st_drop_geometry(UREC_contP)
-UREC_ombrage = st_read('C:/Meghana/Belgique/decembre/results/indiceOmbrage.SQLite')
-UREC_ombrage = subset(UREC_ombrage, select = c(id_uea, rive, id,meanombrage_adj_nrm, canopyratio_new_nrm))
+UREC_ombrage = st_read('C:/Meghana/Belgique/decembre/results/indiceRegTemp.SQLite')
+UREC_ombrage = subset(UREC_ombrage, select = c(id_uea, rive, id, canopyrati_nrm))
 UREC_ISEER = left_join(UREC_ombrage,df_UREC_contP, by = c('id'='id'))
-UREC_ISEER$meanombrage_adj_nrm = as.numeric(UREC_ISEER$meanombrage_adj_nrm)
-UREC_ISEER$canopyratio_new_nrm = as.numeric(UREC_ISEER$canopyratio_new_nrm)
+UREC_ISEER$canopyrati_nrm = as.numeric(UREC_ISEER$canopyrati_nrm)
 UREC_ISEER$continuity_vegetation_optiamle_nrm = as.numeric(UREC_ISEER$continuity_vegetation_optiamle_nrm )
 UREC_ISEER$pd_vegetation_optimale_nrm = as.numeric(UREC_ISEER$pd_vegetation_optimale_nrm)
 UREC_ISEER$indice_nat_nrm = as.numeric(UREC_ISEER$indice_nat_nrm)
@@ -621,17 +626,16 @@ UREC_ISEER = vect(UREC_ISEER)
 #Do statistics on metrics from each function 
 
 stats_UREC_ISEER = Correlation_matrix(df = UREC_ISEER, var2 = 'metrics ConP and Ombrage')
-PCA_UREC_ISEER = PCA_graph_function(df = UREC_ISEER, df_name = 'ConnectP and Ombrage', axe = c(1,2))
+PCA_UREC_ISEER = PCA_graph_function(df = UREC_ISEER, df_name = 'ConnectP and Ombrage', axe = c(2,3))
 
-UREC_ISEER$ISEER = (UREC_ISEER$meanombrage_adj_nrm +
-                      UREC_ISEER$canopyratio_new_nrm+
+UREC_ISEER$ISEER = (
+                      UREC_ISEER$canopyrati_nrm +
                       UREC_ISEER$pd_vegetation_optimale_nrm+
-                      UREC_ISEER$indice_nat_nrm+
-                      UREC_ISEER$continuity_vegetation_optiamle_nrm)/5
+                      UREC_ISEER$continuity_vegetation_optiamle_nrm)/3
 
 UREC_ISEER_sf = st_as_sf(UREC_ISEER)
-st_write(UREC_ISEER_sf,'C:/Meghana/Belgique/decembre/results/UREC_ISEER.SQLITE')
-st_write(UREC_ISEER_sf,'C:/Meghana/Belgique/decembre/results/UREC_ISEER.shp')
+st_write(UREC_ISEER_sf,'C:/Meghana/Belgique/decembre/results/UREC_ISEER.SQLITE', delete_layer = T)
+st_write(UREC_ISEER_sf,'C:/Meghana/Belgique/decembre/results/UREC_ISEER.shp', delete_layer = T)
 #Plot ISEER
 UREC_ISEER_sf = st_read('C:/Meghana/Belgique/decembre/results/UREC_ISEER.shp')
 plot(UREC_ISEER_sf$ISEER, ylim = c(0,1), ylab = "ISÉÉR préliminaire", xlab = "Unités spatiales",)
@@ -661,6 +665,7 @@ plot(UREC_ISEER2_test$IQBR)
 UREC_ISEER2_test$IQBR_nrm = (UREC_ISEER2_test$IQBR - min(UREC_ISEER2_test$IQBR))/ (max(UREC_ISEER2_test$IQBR)- min(UREC_ISEER2_test$IQBR))
 plot(UREC_ISEER2_test$IQBR_nrm, ylim = c(0,1))
 points(UREC_ISEER2_test$ISEER, col = 'red')
+
 #Do correlation between ISEER and IQBR
 UREC_ISEER2_test_sub = subset(UREC_ISEER2_test, select = c(id_uea , rive, id, ISEER, IQBR_nrm))
 UREC_ISEER2_test_sub = vect(UREC_ISEER2_test_sub)
@@ -669,6 +674,28 @@ plot(UREC_ISEER2_test_sub$ISEER, ylim = c(0,1), ylab = "Indices", xlab = "Unité
 points(UREC_ISEER2_test_sub$IQBR_nrm, pch = 3, col = "red")
 legend("bottomright", legend=c("ISEER", "IQBR"),
        col=c("black", "red"), pch =3, cex=0.8)
+
+########################NEW SET OF ISEER#################
+UREC_ISEER_test = st_as_sf(UREC_ISEER)
+UREC_ISEER_test = IQBR_functions(UREC_merge = UREC_ISEER_test, raster_file = ut19_full,csv_class_correspondence = IQBR_classes )
+UREC_ISEER_test$IQBR_nrm = (UREC_ISEER_test$IQBR - min(UREC_ISEER_test$IQBR))/(max(UREC_ISEER_test$IQBR)-min(UREC_ISEER_test$IQBR))
+plot(UREC_ISEER_test$ISEER, ylim = c(0,1))
+
+points(UREC_ISEER_test$IQBR_nrm, col = 'red')
+
+#Do correlation between ISEER and IQBR
+UREC_ISEER_test_sub = subset(UREC_ISEER_test, select = c(id_uea , rive, id, ISEER, IQBR_nrm))
+UREC_ISEER_test_sub_vec = vect(UREC_ISEER_test_sub)
+correlation_UREC_ISEER_test_sub = Correlation_matrix(df = UREC_ISEER_test_sub_vec, var2 = "IQBR vs ISEER")
+
+barplot_test = subset(UREC_ISEER_test_sub, select = c(id,ISEER,IQBR_nrm ))
+barplot(barplot_test$ISEER)
+barplot(barplot_test$IQBR_nrm, beside = T)
+hist(UREC_ISEER_test_sub_vec$IQBR_nrm, add = T, col = 'blue')
+#Tests if difference between ISEER and IQBR is significant
+
+
+
 #############################################################################
 #Some preprocessing for getting data ready
 path_sampling = 'C:/Meghana/Belgique/traitements/results/sampling_rives/'
