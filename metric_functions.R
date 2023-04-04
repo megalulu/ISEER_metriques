@@ -45,17 +45,34 @@ library(tidyr)
 
 
 
-LateralWidthFunction <- function(rives, voronoi){
-  for (i in 1:nrow(rive)){
-    rive = rives[i,]
-    voronoi_lines <- st_cast(voronoi , to = 'LINESTRING')
-    voronoi_lines <- st_intersection(voronoi , rive)
-    width_UREC = st_length(voronoi_lines)
-    median_width = median(width_UREC)
-    rive$width = median_width
-    st_write(rive, 'C:/Meghana/Belgique/traitements/results/UREC_MaxCam1.shp', delete_layer = T)
+LateralWidthFunction <- function(UREC_merge, UEA_merge){
+  #UREC_merge : sf object of spatial units with Id_UEA
+  #UEA_merge : merged shapefile (as sf object) of UEA used to create UREC. Must also have Id_UEA has primary key
+  UREC_merge$meanlenght = NA
+  for (i in 1:nrow(UREC_merge)){
+    print(paste0('measuring ', UREC_merge[i,]$id))
+    rive = UREC_merge[i,]
+    Id_uea=  rive$Id_UEA
+    #Create a query to find the appropraite UEA 
+    query = UEA_merge$Id_UEA == Id_uea
+    uea = filter(UEA_merge, query) #Find the correct UEA based on Id_uea
+    uea = st_cast(uea, to = 'LINESTRING')
+    class = class(uea)
+    if(class[2]!= 'sfc'){
+      uea = st_as_sfc(uea)
+    }
+    
+    semis = st_line_sample(uea, density = 0.02, type = 'regular') #create semis every 50m
+    voronoi = st_voronoi(semis)%>% st_cast() #create polygone voronoi
+    voronoi = st_cast(voronoi, to = 'LINESTRING')#convert polygone voronoi to linestring
+    polygon1 =rive %>% st_cast(t0 = 'POLYGONE') #make sure rive is a polygone type
+    voronoi1 = st_intersection(voronoi,polygon1 )  #cut voronoi linestring to shell of rive polygone
+    lenghts = st_length(voronoi1)
+    average_lenght = mean(lenghts)
+    UREC_merge[i,]$meanlenght = average_lenght
+    x = 7
   }
-
+  return(UREC_merge)
 }
 
 
@@ -175,11 +192,6 @@ Indice_Naturalite_functions <-function(UREC_merge, raster_file, csv_class_corres
 }
 
 
-# UREC_water = UREC_water_merge_proj
-# raster_file = mhc_vrt
-# EPSG = 'EPSG:2949'
-# urban_vector_mask = mask_urbain_vectoriel
-# i = 1
 OverhangingCanopy <- function(UREC_water, raster_file, EPSG,  urban_vector_mask){
   #UREC_water : spatVector file of water surface per UREC that has been reprojected to match raster file projetion and clipped to extent of raster_file (see main)
   #raster_file : raster file (or vrt) of MHC mosaic split based on projection (either MTM7 or MTM8)
@@ -240,5 +252,136 @@ IQBR_functions <-function(UREC_merge, raster_file, csv_class_correspondence ){
     
     
   }
+  return(UREC_merge)
+}
+
+UREC_merge = c
+raster_file = vrt_mhc_mask7
+EPSG= 'EPSG:2949'
+urban_vector_mask = urban_vector_mask
+i = 1
+TreeStats <- function(UREC_merge, raster_file, EPSG,  urban_vector_mask){
+  #UREC_merge : spatVector file of feature surface per UREC that has been reprojected to match raster file projetion and clipped to extent of raster_file (see main)
+  #raster_file : raster file (or vrt) of MHC mosaic split based on projection (either MTM7 or MTM8)
+  #EPSG : Character string of projection. example : "EPSG: 2949"
+  #Urban_vector_mask : Spactvector file of vecotirized urban areas at same resolution as raster_file
+  UREC_merge$meanHeight = NA
+  UREC_merge$medianHeight =NA
+  UREC_merge$sdHeight = NA
+  UREC_merge$majorityHeight =NA
+  for (i in 1:nrow(UREC_merge)){
+    feature =  UREC_merge[i,]
+    print(paste0('processing UREC : ', feature$id))
+    features_sf = st_as_sf(feature) #load polygon as sf object to be used in exact extract
+    features_sf = st_transform(features_sf, st_crs(raster_file))
+    vrt_mhc_mask7_clip = terra::crop(raster_file, features_sf)
+    vrt_mhc_mask7_clip[vrt_mhc_mask7_clip<1.5]<-NA
+    feature_raster = terra::rasterize(features_sf, vrt_mhc_mask7_clip)
+    vrt_mhc_mask7_feature = terra::mask(vrt_mhc_mask7_clip, feature_raster)
+    porj_urbain = terra::project(urban_vector_mask, EPSG)
+    proj_urbain_sf = st_as_sf(porj_urbain)
+    vrt_mhc_mask7_feature_urbain = terra::mask(vrt_mhc_mask7_feature, proj_urbain_sf, inverse = T)
+    
+    feature$meanHeight =as.numeric(exactextractr::exact_extract(vrt_mhc_mask7_feature_urbain, features_sf, 'mean'))
+    feature$medianHeight =as.numeric(exactextractr::exact_extract(vrt_mhc_mask7_feature_urbain, features_sf, 'median'))
+    feature$sdHeight = as.numeric(exactextractr::exact_extract(vrt_mhc_mask7_feature_urbain, features_sf, 'stdev'))
+    feature$majorityHeight = as.numeric(exactextractr::exact_extract(vrt_mhc_mask7_feature_urbain, features_sf, 'majority'))
+    
+    UREC_merge[i,]$meanHeight = feature$meanHeight
+    UREC_merge[i,]$medianHeight = feature$medianHeight
+    UREC_merge[i,]$sdHeight = feature$sdHeight
+    UREC_merge[i,]$majorityHeight = feature$majorityHeight
+    
+    
+  }
+  return(UREC_merge)
+}
+
+NumberClasses <- function(UREC_merge, raster_file){
+  UREC_merge$nbr_class = NA
+  for (i in 1:nrow(UREC_merge)){
+    feature =  UREC_merge[i,]
+    print(paste0('processing UREC : ', feature$id))
+    features_sf = st_as_sf(feature) #load polygon as sf object to be used in exact extract
+    features_sf = st_transform(features_sf, st_crs(raster_file))
+    raster_file_clip = terra::crop(raster_file, features_sf)
+    #vrt_mhc_mask7_clip[vrt_mhc_mask7_clip<1.5]<-NA
+    feature_raster = terra::rasterize(features_sf, raster_file_clip)
+    raster_file_mask_feature = terra::mask(raster_file_clip, feature_raster)
+    # porj_urbain = terra::project(urban_vector_mask, EPSG)
+    #  proj_urbain_sf = st_as_sf(porj_urbain)
+    # vrt_mhc_mask7_feature_urbain = terra::mask(vrt_mhc_mask7_feature, proj_urbain_sf, inverse = T)
+    
+    feature$nbr_class =as.numeric(exactextractr::exact_extract(raster_file_mask_feature, features_sf, 'variety'))
+    UREC_merge[i,]$nbr_class = feature$nbr_class
+  }
+  return(UREC_merge)
+}
+
+SurfaceClass <-
+  function (UREC_merge,
+            csv_class_correspondence,
+            raster_file) {
+    
+    #UREC_merge = sf file of all spatiale units
+    #raster_file = raster file of utilisation du territoire cliped to only have area covered by spatial units !!!Has to be loaded with raster library: raster("file_path")
+    #csv__class_correspondence : group csv of class correspondence between UT classes and Values. This needs to be grouped by using group_by function with CODE UT column
+    
+    for (r in 1:nrow(UREC_merge)) {
+      shp = UREC_merge[r, ]
+      print(paste0('reading', shp$id))
+      shp = st_transform(shp, crs = st_crs(raster_file)) # project vector UREC file to same projection as raster file
+      ut_shp = terra::crop(raster_file, shp) #Reduce the extent of the ESA raster to the extent of UREC
+      shp_raster = terra::rasterize(shp, ut_shp) #rasterize UREC shapefile by using the esa_clip extent as the extent of the output raster (see docs)
+      ut_mask = terra::mask(ut_shp, shp_raster)
+      
+      #Get frequency of each class in the raster
+      freq_dist = freq(ut_mask)
+      freq_dist = as.data.frame(freq_dist)
+      
+      #freq_dist$value = as.data.frame.integer(freq_dist$value)
+      # join_tbl = left_join(freq_dist, IQBR_UT_2018_correspondence, c('value'='Value')) #raster needs to be loaded with raster library to work
+      join_tbl = left_join(freq_dist,
+                           csv_class_correspondence,
+                           c('value' = 'CODE_UT'))
+      join_tbl = na.omit(join_tbl) #remove NA from table
+      total_pix = sum(join_tbl$count) #Count the number of pixels to get proportional coverage
+      join_tbl$perc_coverage = round((join_tbl$count / total_pix), 2)
+      summarize_joint_tbl = join_tbl %>% group_by(DESC_CAT) %>% dplyr::summarise(prop_surf = sum(perc_coverage))
+      
+      df_summarize_joint_tbl = as.data.frame(summarize_joint_tbl)
+      transpose = as.data.frame(t(df_summarize_joint_tbl))
+      names(transpose)<- transpose[1,] #make first row column names
+      
+      
+      transpose <- transpose[-1,] #remove first row that now is present twice
+      
+      for (c in colnames(transpose)){
+        UREC_merge[r,c] = transpose[,c]
+      } 
+      
+    }
+    return(UREC_merge)
+    
+  }
+
+#Create function for average slope
+AverageSlope <- function(UREC_merge, slope_raster){
+  #UREC_merge : SpatVector of special units overlapping raster projection (ie MTM7 or MTM8)
+  #slope_raster : Slope raster mosaic or vrt seperated into one projection (ie. MTM7 or MTM8)
+  UREC_merge$avrSlope = NA
+  for (i in 1:nrow(UREC_merge)){
+    feature =  UREC_merge[i,]
+    print(paste0('processing UREC : ', feature$id))
+    features_sf = st_as_sf(feature) #load polygon as sf object to be used in exact extract
+    features_sf = st_transform(features_sf, st_crs(slope_raster))
+    slope_crop = terra::crop(slope_raster, features_sf)
+    #slope_crop_mask  = terra::mask(slope_crop, feature)
+    
+    feature$avrSlope =as.numeric(exactextractr::exact_extract(slope_crop, features_sf, 'mean'))
+    UREC_merge[i,]$avrSlope = feature$avrSlope
+    
+  }
+  
   return(UREC_merge)
 }

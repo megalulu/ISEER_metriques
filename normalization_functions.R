@@ -7,6 +7,8 @@
 # col = col_names[1]
 # n=1
 #Do normalisation with min and max of data
+UREC_merge= df
+
 Normalization_function <- function(UREC_merge) {
   UREC_norm = UREC_merge
   #Transform sf object into dataframe
@@ -22,7 +24,13 @@ Normalization_function <- function(UREC_merge) {
     #Check if column name is 'Id_UEA' or 'Id_rive', 'ext_geometry', 'id, or 'IndOmbrage' (already has values between 0 and 1) : these columns should not be normalized
     if (colname != 'id_uea' &
         colname != 'id_rive' &
-        colname != 'ext_geometry' & colname != 'id' & colname != 'rive') {
+        colname != 'ext_geometry' &
+        colname != 'id' &
+        colname != 'rive'&
+        colname != 'Id_UEA'&
+        colname != "rive.x"&
+        colname != 'ogc_fid'&
+        colname != 'rive.y') {
       print('Colename is not Id_UEA or Id_rive or geometry.')
       new_colname =   paste0(names(feature_table), '_nrm')#Create name for normalized column
       print(new_colname) #Print new column name to make sure it looks correct

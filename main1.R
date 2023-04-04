@@ -97,6 +97,8 @@ sub_results_new_nrm = New_inverse_fun(UREC_norm = sub_results_new_nrm, col_names
 
 st_write(sub_results_new_nrm, 'C:/Meghana/Belgique/decembre/results/results_new1_norm.shp', delete_layer = T)
 st_write(results_norm, 'C:/Meghana/Belgique/decembre/results/results_new1_norm.SQLite', driver = 'SQLITE')
+st_write(sub_results_new_nrm, 'C:/Meghana/Belgique/decembre/results/metrique_ConP_norm.shp', delete_layer = T)
+st_write(results_norm, 'C:/Meghana/Belgique/decembre/results/metrique_ConP_norm.SQLite', driver = 'SQLITE')
 
 results_new_Indice = sub_results_new_nrm
 results_new_Indice$ConP = (results_new_Indice$pd_vegetation_optimale_nrm +
@@ -107,6 +109,8 @@ plot(results_new_Indice$ConP)
 st_write(results_new_Indice,'C:/Meghana/Belgique/decembre/results/results_new1_indice.SQLite', driver = 'SQLITE' , delete_layer = T)
 st_write(results_new_Indice,'C:/Meghana/Belgique/decembre/results/results_new1_indice.shp', delete_layer = T)
 
+st_write(results_new_Indice,'C:/Meghana/Belgique/decembre/results/metrique_ConP.SQLite', driver = 'SQLITE' , delete_layer = T)
+st_write(results_new_Indice,'C:/Meghana/Belgique/decembre/results/metrique_ConP.shp', delete_layer = T)
 
 
 ################################################################################
@@ -544,6 +548,7 @@ UREC_merge_omrbage_test = na.omit(UREC_merge_omrbage_test)
 #merge both data sets for both metrics 
 UREC_merge_omrbage_test = left_join(UREC_merge_omrbage_test,UREC_canopy, by = c('id'='id') )
 st_write(UREC_merge_omrbage_test,'C:/Meghana/Belgique/decembre/results/UREC_metrics_Indice_RegTemp.sqlite' )
+st_write(UREC_merge_omrbage_test,'C:/Meghana/Belgique/decembre/results/UREC_metrics_Indice_RegTemp.shp' )
 #set new column name of UREC_merge and set all values to NA
 UREC_merge_omrbage_test$CanopyRatio_new = NA
 # #for loop to put values from both canopyRatio mtm7 and mtm8 into new column

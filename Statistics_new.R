@@ -29,7 +29,7 @@ library(psych)
 ##############################################################################
               #Visualising Correlation matrix between variables
 ##############################################################################
-# df : object Spatvect <-  metrics to do correlation analysis on. Dataframe should only have numeric values and the two columns ('id_uea', 'id_rive', 'id)
+# df : object Spatvect <-  metrics to do correlation analysis on. Dataframe should only have numeric values and the two columns ('id_uea', 'rive', 'id)
 # var2 : Character string <- Name of the set of metrics you are testing (can be name of ecosystem function)
 # output : res (matrix array) <-table of correlation matrix 
 Correlation_matrix <- function(df, var2) {
