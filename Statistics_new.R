@@ -29,12 +29,12 @@ library(psych)
 ##############################################################################
               #Visualising Correlation matrix between variables
 ##############################################################################
-# df : object Spatvect <-  metrics to do correlation analysis on. Dataframe should only have numeric values and the two columns ('id_uea', 'rive', 'id)
+# df : object Spatvect <-  metrics to do correlation analysis on. Dataframe should only have numeric values and the three columns ('id_uea', 'rive', 'id)
 # var2 : Character string <- Name of the set of metrics you are testing (can be name of ecosystem function)
 # output : res (matrix array) <-table of correlation matrix 
 Correlation_matrix <- function(df, var2) {
   df = as.data.frame(df)
-  df_sub = df %>% select(-c('id_uea', 'rive', 'id')) #subset dataframe to only select numeric data
+  df_sub = df %>% dplyr::select(-c('id_uea', 'rive', 'id')) #subset dataframe to only select numeric data
   res <-
     round(cor(df_sub, method = c('spearman')), 2) #Create Correlation matrix
   
@@ -106,13 +106,13 @@ Correlation_matrix <- function(df, var2) {
               #cos2 : cos2 for the individuals/variables
               #contrib :  # contributions of the individuals/variables 
              # cor : matrix of covariance between variables
-df = UREC_ISEER
+
 PCA_graph_function <- function(df, df_name, axe ){
   library(factoextra)
   
   #Transform sf or spatVec object into dataframe
   df = as.data.frame(df)
-  df = df %>% select(-c('id_uea', 'rive', 'id')) #subset dataframe to only select numeric data
+  df = df %>% dplyr::select(-c('id_uea', 'rive', 'id')) #subset dataframe to only select numeric data
   
   df_PCA <- princomp(df, cor = TRUE, scores = TRUE) #for analysing variables
   

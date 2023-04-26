@@ -255,11 +255,7 @@ IQBR_functions <-function(UREC_merge, raster_file, csv_class_correspondence ){
   return(UREC_merge)
 }
 
-UREC_merge = c
-raster_file = vrt_mhc_mask7
-EPSG= 'EPSG:2949'
-urban_vector_mask = urban_vector_mask
-i = 1
+
 TreeStats <- function(UREC_merge, raster_file, EPSG,  urban_vector_mask){
   #UREC_merge : spatVector file of feature surface per UREC that has been reprojected to match raster file projetion and clipped to extent of raster_file (see main)
   #raster_file : raster file (or vrt) of MHC mosaic split based on projection (either MTM7 or MTM8)
@@ -383,5 +379,73 @@ AverageSlope <- function(UREC_merge, slope_raster){
     
   }
   
+  return(UREC_merge)
+}
+
+
+CanopyRatio <- function(UREC_merge, raster_file, EPSG,  urban_vector_mask){
+  #UREC_merge : spatVector file of feature surface per UREC that has been reprojected to match raster file projetion and clipped to extent of raster_file (see main)
+  #raster_file : raster file (or vrt) of MHC mosaic split based on projection (either MTM7 or MTM8)
+  #EPSG : Character string of projection. example : "EPSG: 2949"
+  #Urban_vector_mask : Spactvector file of vecotirized urban areas and agricultural area at same resolution as raster_file
+  UREC_merge$CanopyRatio = NA
+  
+  
+  for (i in 1:nrow(UREC_merge)){
+    feature =  UREC_merge[i,]
+    print(paste0('processing UREC : ', feature$id))
+    features_sf = st_as_sf(feature) #load polygon as sf object to be used in exact extract
+    features_sf = st_transform(features_sf, st_crs(raster_file))
+    vrt_mhc_mask7_clip = terra::crop(raster_file, features_sf)
+    vrt_mhc_mask7_clip[vrt_mhc_mask7_clip<1.5]<-NA
+    feature_raster = terra::rasterize(features_sf, vrt_mhc_mask7_clip)
+    vrt_mhc_mask7_feature = terra::mask(vrt_mhc_mask7_clip, feature_raster)
+    porj_urbain = terra::project(urban_vector_mask, EPSG)
+    proj_urbain_sf = st_as_sf(porj_urbain)
+    vrt_mhc_mask7_feature_urbain = terra::mask(vrt_mhc_mask7_feature, proj_urbain_sf, inverse = T)
+    #!!!!!!
+    #feature$CanopySurface =as.numeric(exactextractr::exact_extract(vrt_mhc_mask7_feature_urbain, features_sf, 'count')) #This is the original
+    #!!!!!!!
+    feature$CanopySurface =as.numeric(exactextractr::exact_extract(vrt_mhc_mask7_feature_urbain, features_sf, 'count'))*100 #This needs to be commented out in origanal format not while use peau de vache data
+    feature$area = as.numeric(st_area(features_sf))
+    feature$CanopyRatio = feature$CanopySurface/feature$area 
+    
+    UREC_merge[i,]$CanopyRatio = feature$CanopyRatio
+    
+    
+    
+  }
+  return(UREC_merge)
+}
+
+VegetationRatio <- function(UREC_merge, raster_file){
+  #UREC_merge : spatVector file of feature surface per UREC that has been reprojected to match raster file projetion and clipped to extent of raster_file (see main)
+  #raster_file : raster file (or vrt) of utilisation du territoire masked to classes you want
+ 
+  UREC_merge$VegRatio = NA
+  
+  
+  for (i in 1:nrow(UREC_merge)){
+    feature =  UREC_merge[i,]
+    print(paste0('processing UREC : ', feature$id))
+    features_sf = st_as_sf(feature) #load polygon as sf object to be used in exact extract
+    features_sf = st_transform(features_sf, st_crs(raster_file))
+    raster_file_clip = terra::crop(raster_file, features_sf)
+    #vrt_mhc_mask7_clip[vrt_mhc_mask7_clip<1.5]<-NA
+    feature_raster = terra::rasterize(features_sf, raster_file_clip)
+    vrt_mhc_mask7_feature = terra::mask(raster_file_clip, feature_raster)
+    # porj_urbain = terra::project(urban_vector_mask, EPSG)
+    #  proj_urbain_sf = st_as_sf(porj_urbain)
+    # vrt_mhc_mask7_feature_urbain = terra::mask(vrt_mhc_mask7_feature, proj_urbain_sf, inverse = T)
+    
+    feature$VegSurface =as.numeric(exactextractr::exact_extract(vrt_mhc_mask7_feature, features_sf, 'count'))*100
+    feature$area = as.numeric(st_area(features_sf))
+    feature$VegRatio = feature$VegSurface/feature$area 
+    
+    UREC_merge[i,]$VegRatio = feature$VegRatio
+    
+    
+    
+  }
   return(UREC_merge)
 }

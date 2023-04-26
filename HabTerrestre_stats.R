@@ -2,7 +2,7 @@
 
 #Normalisation
 source('normalization_functions.R')
-librayr(dp)
+library(dp)
 UREC_maintienHabT3 <- read.csv2("C:/Meghana/Belgique/decembre/traitements/UREC_maintienHabT3.csv")
 UREC_maintienHabT3[UREC_maintienHabT3 == ''] <- NA
 UREC_merge = st_read('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1.shp')
@@ -19,7 +19,14 @@ df$coupe_regen[is.na(df$coupe_regen)] <- 0
 
 #Replace NA with 0 (because all the columns make more sense that way )
 df <- replace(df, is.na(df), 0)
-
+st_write(df, 'C:/Meghana/Belgique/decembre/traitements/UREC_metriques_Habitat_f.shp')
+st_write(df, 'C:/Meghana/Belgique/decembre/traitements/UREC_metriques_Habitat_f.sqlite')
+#For a test we are exchanging Canratio data with test2_CanRatio
+CanRatio2 = st_read('C:/Meghana/Belgique/decembre/traitements/test2_CanRatio.shp')
+df$CanRatio = CanRatio2$CanopyRati
+#For test we are adding VegRatio with an 'optimal vegetation' = Forest et humide only considered as vegetation 
+VegRatio_opt = st_read('C:/Meghana/Belgique/decembre/traitements/VegRatio_vegoptimal.sqlite')
+df$VegRatio_optimal = VegRatio_opt$vegratiooptimal
 #Run normalisation function 
 UREC_hab_nrm = Normalization_function(UREC_merge= df)
 #Write files
@@ -33,6 +40,7 @@ write.csv(t, 'C:/Meghana/Belgique/decembre/traitements/UREC_maintient_hab_normal
 #Correlation and PCA
 cor_hab = vect(UREC_hab_nrm)
 cor_hab$rive = cor_hab$rive.x
+#On peut ajouter la class aquatique si on veux : "aquatique_nrm"
 drop <- c('Id_UEA',"ogc_fid", 'rive.x', 'rive.y',
           'vegratio',
           'nbr_class',
@@ -52,12 +60,12 @@ drop <- c('Id_UEA',"ogc_fid", 'rive.x', 'rive.y',
           'majority_height',
           'CanRatio', 
           'Nbr_class_nrm',
-          'vegetation_ratio_nrm')
+          'vegetation_ratio_nrm', "aquatique_nrm", 'VegRatio_optimal')
 
 cor_hab = cor_hab[,!(names(cor_hab) %in% drop)]
 
 cor_matrix_hab = Correlation_matrix(df = cor_hab, var2 = 'Hab')
-
+write.table(cor_matrix_hab, file = "C:/Meghana/Belgique/decembre/traitements/fonction_habitat/correlation_MaintienHab_all2.txt", sep = "\t", row.names = TRUE)
 pca_cor_matrix_hab = PCA_graph_function(df = cor_hab, df_name = 'Habitat _all', axe = c(1,2))
 
 
@@ -70,6 +78,7 @@ keep1 <- c("id","id_uea", 'rive', 'mean_height_nrm', 'median_height_nrm', 'sd_he
 df_tree_stats =  cor_hab[,(names(cor_hab) %in% keep1)]
 
 pca_tree_stats = PCA_graph_function(df = df_tree_stats, df_name = 'TreeStats', axe = c(1,2))
+
 
 
 #Do PCA on final decision for metriques in round 1
@@ -87,10 +96,30 @@ cor_df_hab_metriques_f1 = Correlation_matrix(df = df_hab_metriques_f1, var2 = 'C
 PCA_df_hab_metriques_f1 = PCA_graph_function(df = df_hab_metriques_f1, df_name = 'PCA final metrics', axe = c(1,2))
 PCA_df_hab_metriques_f1_axe2 = PCA_graph_function(df = df_hab_metriques_f1, df_name = 'PCA final metrics', axe = c(2,3))
 PCA_df_hab_metriques_f1_axe3 = PCA_graph_function(df = df_hab_metriques_f1, df_name = 'PCA final metrics', axe = c(1,3))
+PCA_df_hab_metriques_f1_axe4 = PCA_graph_function(df = df_hab_metriques_f1, df_name = 'PCA final metrics', axe = c(1,4))
+PCA_df_hab_metriques_f1_axe5 = PCA_graph_function(df = df_hab_metriques_f1, df_name = 'PCA final metrics', axe = c(1,5))
+
+
+#######
+#New data set with veg optimal stats 
+keep3 = c("id","id_uea", 'rive', 'VegRatio_optimal_nrm','forestier_nrm', 'humide_nrm')
+df_veg_optimal_stats =  cor_hab[,(names(cor_hab) %in% keep3)]
+pca_VegOpt_stats = PCA_graph_function(df = df_veg_optimal_stats, df_name = 'VegOpt_stats', axe = c(1,2))
+
+keep4 = c("id","id_uea", 'rive', 'VegRatio_optimal_nrm',
+          'nbr_class_nrm','agricole_nrm',
+          'mean_height_nrm', 'anthropiqu_nrm', 'CanRatio_nrm') #This can be added 'vegratio_nrm', 'forestier_nrm', 'humide_nrm',
+df_hab_metriques_f2 = cor_hab[,(names(cor_hab) %in% keep4)]
+PCA_df_hab_metriques_f2 = Correlation_matrix(df = df_hab_metriques_f2, var2 = 'Correlation of  metrics_Vegoptimal')
+PCA_df_hab_metriques_f2 = PCA_graph_function(df = df_hab_metriques_f2, df_name = 'PCA  metrics_Vegoptimal', axe = c(1,2))
+PCA_df_hab_metriques_f2_axe2 = PCA_graph_function(df = df_hab_metriques_f2, df_name = 'PCA  metrics_Vegoptimal', axe = c(1,3))
+PCA_df_hab_metriques_f2_axe3 = PCA_graph_function(df = df_hab_metriques_f2, df_name = 'PCA  metrics_Vegoptimal', axe = c(1,4))
 
 ######################################################################
 #Create first index
 UREC_hab = df_hab_metriques_f1
+
+
 UREC_hab$Fe1 = (UREC_hab$vegratio_nrm+UREC_hab$nbr_class_nrm+
                   UREC_hab$agricole_nrm+UREC_hab$anthropiqu_nrm+
                   UREC_hab$forestier_nrm+UREC_hab$humide_nrm+
@@ -98,11 +127,54 @@ UREC_hab$Fe1 = (UREC_hab$vegratio_nrm+UREC_hab$nbr_class_nrm+
 UREC_hab$Fe2 = (UREC_hab$vegratio_nrm+UREC_hab$nbr_class_nrm+
                   UREC_hab$forestier_nrm+
                   UREC_hab$mean_height_nrm+UREC_hab$CanRatio_nrm)/6
+UREC_hab$Fe3 = (UREC_hab$vegratio_nrm+UREC_hab$nbr_class_nrm+
+                  UREC_hab$CanRatio_nrm)/3
+#Index with new CanRatio calculations and new statistiques elimination
+UREC_hab$Fe4 = (UREC_hab$vegratio_nrm+UREC_hab$nbr_class_nrm+
+                  UREC_hab$agricole_nrm+
+                  UREC_hab$forestier_nrm+UREC_hab$humide_nrm+
+                  UREC_hab$mean_height_nrm+UREC_hab$CanRatio_nrm)/7
+UREC_hab$Fe5 = (UREC_hab$vegratio_nrm+UREC_hab$nbr_class_nrm+
+                  UREC_hab$forestier_nrm+
+                  UREC_hab$mean_height_nrm)/4
+UREC_hab$Fe6 = (UREC_hab$vegratio_nrm+UREC_hab$nbr_class_nrm+
+                  UREC_hab$forestier_nrm)/3
+UREC_hab$Fe7 = (UREC_hab$vegratio_nrm+UREC_hab$nbr_class_nrm+
+                  UREC_hab$forestier_nrm+
+                  UREC_hab$agricole_nrm)/4
+#Inverse Agricole : theory is more there is agriculture less there is habitat
+UREC_hab$inv_agriculture_nrm = -(UREC_hab$agricole_nrm) +1
+UREC_hab$Fe8 = (UREC_hab$vegratio_nrm+UREC_hab$nbr_class_nrm+
+                  UREC_hab$forestier_nrm+
+                  UREC_hab$inv_agriculture_nrm)/4
+UREC_hab$Fe9 = (UREC_hab$vegratio_nrm+UREC_hab$nbr_class_nrm+
+                  UREC_hab$inv_agriculture_nrm+
+                  UREC_hab$forestier_nrm+UREC_hab$humide_nrm+
+                  UREC_hab$mean_height_nrm+UREC_hab$CanRatio_nrm)/7
+
+UREC_hab$Fe10 = (UREC_hab$vegratio_nrm+UREC_hab$nbr_class_nrm+
+                  UREC_hab$inv_agriculture_nrm+
+                  UREC_hab$forestier_nrm+UREC_hab$CanRatio_nrm)/5
+
+#Indexes with New VegOptimal 
+UREC_hab = df_hab_metriques_f2
+UREC_hab$inv_anthropique_nrm = -(UREC_hab$anthropiqu_nrm) +1
+UREC_hab$inv_agriculture_nrm = -(UREC_hab$agricole_nrm) +1
+UREC_hab$Fe11 = (UREC_hab$VegRatio_optimal_nrm + UREC_hab$CanRatio_nrm+
+                  UREC_hab$mean_height_nrm+UREC_hab$inv_agriculture_nrm)/4 #add this if necessary   UREC_hab$inv_agriculture_nrm+ 
+UREC_hab$Fe12 = (UREC_hab$VegRatio_optimal_nrm + UREC_hab$CanRatio_nrm+UREC_hab$inv_anthropique_nrm+
+                   UREC_hab$mean_height_nrm)/4 #add this if necessary   UREC_hab$inv_agriculture_nrm+ 
+
+writeVector(UREC_hab,"C:/Meghana/Belgique/decembre/traitements/FE_maintient_Hab_VegOptimal.shp", overwrite = T )
+
+UREC_hab = st_read("C:/Meghana/Belgique/decembre/traitements/FE_maintient_Hab_VegOptimal.shp" )
+
+
 
 old.par <- par(mar = c(0, 0, 0, 0))
 par(old.par)
 windows(10,5)
-plot(UREC_hab$Fe2)
+plot(UREC_hab$Fe12, )
 
 
 
