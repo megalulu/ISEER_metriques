@@ -73,16 +73,16 @@ UREC_prod_nrm = Normalization_function(UREC_merge = UREC_prod)
 #prod_nrm = st_read('C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_nrm.sqlite')
 prod_nrm = UREC_prod_nrm
 names(prod_nrm)#prod_nrm = UREC_prod_nrm
-# keep_nrm = c("id","id_uea",
-#   "rive",
-#   "agricole_nrm",
-#   "anthropiqu_nrm",
-#   "forestier_nrm"  ,
-#   "humide_nrm"    ,
-#   "hydcond_nrm",
-#   "avrslope_nrm",
-#   "hepb_nrm"
-# )
+keep_nrm = c("id","id_uea",
+  "rive",
+  "agricole_nrm",
+  "anthropique_nrm",
+  "HydCond_nrm",
+  "VegRatio_o_nrm",
+  "avrSlope_nrm",
+  "hepb_nrm"
+)
+
 keep_nrm = c("id","id_uea",
                "rive",
                "agricole_nrm",
@@ -92,14 +92,15 @@ keep_nrm = c("id","id_uea",
              "hepb_nrm",
              "VegRatio_o_nrm")
 
-# keep_nrm = c("id","id_uea",
-#              "rive",
-#              "anthropique_nrm",
-#              "HydCond_nrm",
-#              "avrSlope_nrm",
-#              "hepb_nrm",
-#              "VegRatio_o_nrm", 
-#              "AgriAnthro_nrm")
+keep_nrm = c("id","id_uea",
+             "rive",
+             "agricole_nrm",
+             "anthropique_nrm",
+             "HydCond_nrm",
+             "avrSlope_nrm",
+             "hepb_nrm",
+             "VegRatio_o_nrm",
+             "AgriAnthro_nrm")
 
 prod_nrm =prod_nrm[,(names(prod_nrm) %in% keep_nrm)]
 names(prod_nrm)
@@ -175,23 +176,48 @@ ind1_prod$Fe8 = (ind1_prod$inv_agricole +
 ind1_prod$Fe9 = (ind1_prod$inv_agricole +
                    ind1_prod$HydCond_nrm + 
                    ind1_prod$inv_anthropique + ind1_prod$inv_avgslope)/4
-
+windows(10,5)
+plot(ind1_prod$Fe9)
 #NEW indices avec Veg optimale et inversion d'anthropique, agricole et pente and classe AgriAnthro
 ind1_prod$inv_anthropique = -ind1_prod$anthropique_nrm +1
 ind1_prod$inv_avgslope = -ind1_prod$avrSlope_nrm +1
 
 ind1_prod$F10 = (ind1_prod$VegRatio_o_nrm + ind1_prod$inv_anthropique +
                    ind1_prod$hepb_nrm + ind1_prod$inv_avgslope)/4
+
+windows(10,5)
 plot(ind1_prod$F10)
+
+#################NEW indices avec AgriAnthro 
+ind1_prod = prod_nrm 
+ind1_prod$inv_agricole = -ind1_prod$agricole_nrm +1
+ind1_prod$inv_anthropique = -ind1_prod$anthropique_nrm +1
+ind1_prod$inv_avgslope = -ind1_prod$avrSlope_nrm +1
+ind1_prod$inv_agriAnthropique =  -ind1_prod$AgriAnthro_nrm +1
+
+ind1_prod$FE11 = (ind1_prod$inv_agricole + ind1_prod$hepb_nrm +
+                    ind1_prod$HydCond_nrm + ind1_prod$inv_avgslope +
+                    ind1_prod$VegRatio_o_nrm)/5
+
+windows(10,5)
+plot(ind1_prod$FE11)
+
+ind1_prod$FE12 = (ind1_prod$inv_anthropique+ ind1_prod$hepb_nrm +
+                    ind1_prod$HydCond_nrm + ind1_prod$inv_avgslope +
+                    ind1_prod$VegRatio_o_nrm)/5 
+
+ind1_prod$FE13 = (ind1_prod$inv_agriAnthropique+ ind1_prod$hepb_nrm +
+                    ind1_prod$HydCond_nrm + ind1_prod$inv_avgslope +
+                    ind1_prod$VegRatio_o_nrm)/5
+
 
 
 windows(10,5)
-plot(ind1_prod$Fe10)
+plot(ind1_prod$FE12)
 
 
-
-min(ind1_prod$F10)
-max(ind1_prod$F10)
+min(ind1_prod$FE11)
+max(ind1_prod$FE11)
 
 
 
@@ -263,6 +289,9 @@ ggplot(df_long, aes(x = row_name, y = value, color = variable)) +
   ylim(0, 1) +
   scale_color_manual(values = c("mean" = "red", "standard deviation" = "blue", "median"= "green", 'min' = 'black', 'max'= 'yellow')) +
   labs(color = "Variable")
+
+
+
 ####################################################################################
 
 #Test pente and other variables with non lineare UEA 
