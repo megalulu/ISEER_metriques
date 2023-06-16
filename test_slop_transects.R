@@ -95,6 +95,9 @@ slope_raster = penteMTM7_raster
 penteMTM7_raster = rast('C:/Meghana/donnee_brutes/LIDAR/Pentes/pente_mtm7.vrt')
 penteMTM8_raster = rast('C:/Meghana/donnee_brutes/LIDAR/Pentes/pente_mtm8.vrt')
 UREC_merge = vect('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1.shp')
+urbain1 = st_read('C:/Meghana/Belgique/decembre/traitements/ut_urbain_vect.shp')
+urbain1 = st_transform(urbain1,st_crs(penteMTM8_raster ))
+
 #Cut UREC_merge to the extent of pente rasters
 #UREC_mtm7 = terra::project(UREC_merge, crs(penteMTM7_raster))
 #UREC_mtm7 = terra::crop(UREC_mtm7, penteMTM7_raster)
@@ -107,10 +110,13 @@ mean_slopeMTM7 = AverageSlope(UREC_merge = UREC_mtm7, slope_raster = penteMTM7_r
  # UREC_mtm8 = terra::project(UREC_merge, crs(penteMTM8_raster))
  # UREC_mtm8 = terra::crop(UREC_mtm8, penteMTM8_raster)
 UREC_mtm8 = vect('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1_MTM8.shp')
-
+UREC_mtm8=UREC_mtm8[8,]
 # #run slope function
  mean_slopeMTM8 = AverageSlope(UREC_merge = UREC_mtm8, slope_raster = penteMTM8_raster)
-
+ mean_slopeMTM8_urb = AverageSlope(UREC_merge = UREC_mtm8, slope_raster = penteMTM8_raster, mask_urbain = urbain1)
+ 
+ 
+ 
 #Combine mean_slopeMTM8 et 7 into one object
  UREC_merge_pente = rbind(mean_slopeMTM7, mean_slopeMTM8)
  writeVector(UREC_merge_pente, 'C:/Meghana/Belgique/decembre/traitements/UREC_slope.shp')

@@ -99,5 +99,35 @@ for (i in 1:nrow(UREC_HC)){
 st_write(UREC_HC, 'C:/Meghana/Belgique/decembre/traitements/SIIGSOL_traitements/results_urec_hydrocond.shp')
 st_write(UREC_HC, 'C:/Meghana/Belgique/decembre/traitements/results_urec_hydrocond.shp')
 
+###Remove mask urbain from SIIGSOL 
+#Any pixel under the mask should be given a value of 0
+
+#Create for loop incorparinting this new set of rules
+#Load urbain_raster mask layer
+avr_Hc = raster('C:/Meghana/Belgique/decembre/traitements/SIIGSOL_traitements/avr_HydraulicConductivity.tif')
+mask_urbain1 = raster('C:/Meghana/Belgique/decembre/traitements/SIIGSOL_traitements/mask_ urbain_HydCon1.tif')
+mask_urbain1_t = extend(mask_urbain1, avr_Hc)
+UREC_Hc_urb = UREC_merge
+UREC_hc_urb = st_transform(UREC_Hc_urb, st_crs(mask_urbain1))
+i=69
+
+for (i in 1:nrow(UREC_Hc_urb)){
+  print(UREC_Hc_urb[i,])
+  urec_sub = UREC_Hc_urb[i,]
+  avr_Hc_clip = crop(avr_Hc,urec_sub)#avr_hc to extent of urec_sub
+  avr_hc_clip_mask = terra::mask(avr_Hc_clip, urec_sub) #only keep values that are in the unit
+  
+   #crop raster mask urbain to size of sub unit
+  mask_urbain1_clip = crop(mask_urbain1_t, urec_sub)
+  #Mask avr_hc_clip_mask with cropped urbain1_clip but use inverse = T and update values of inverse 
+  avr_hc_clip_mask_urb = terra::mask(avr_hc_clip_mask, mask_urbain1_clip, inverse = T, updatevalue = 0)
+  HC_t = exact_extract(avr_hc_clip_mask_urb,urec_sub , 'median')#Extract median value per UREC of average hydrolic conductivity in the soil 'column' (i.e 1 pixel)
+  UREC_Hc_urb[i,'HydCond'] = HC_t #add data to UREC file
+}
+UREC_Hc_urb$rive = UREC_Hc_urb$rive.x
+keep=c("id_uea", "rive",'id','HydCond')
+UREC_Hc_urb_1 = UREC_Hc_urb[UREC_Hc_urb,names(UREC_Hc_urb)%in%keep]
+st_write(UREC_Hc_urb_1, 'C:/Meghana/Belgique/decembre/traitements/SIIGSOL_traitements/results_urec_hydrocond_maskUrb.shp')
+st_write(UREC_Hc_urb_1, 'C:/Meghana/Belgique/decembre/traitements/SIIGSOL_traitements/results_urec_hydrocond_maskUrb.sqlite')
 
 

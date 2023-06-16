@@ -25,13 +25,14 @@ UREC_hab_sub = UREC_hab[UREC_hab, (names(UREC_hab)%in% keep_hab)]
 head(UREC_hab_sub)
 UREC_hab_sub = st_drop_geometry(UREC_hab_sub)
 #Regulation de la productivity 
-UREC_prod = st_read('C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_nrm.sqlite')
-UREC_prod$inv_agricole_nrm = -UREC_prod$agricole_nrm +1
-UREC_prod$inv_anthropique_nrm = -UREC_prod$anthropiqu_nrm +1
-UREC_prod$inv_avrslope_nrm = -UREC_prod$avrslope_nrm +1
+UREC_prod = st_read('C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_urb_srf3_nrm.sqlite')
+names(UREC_prod)
+# UREC_prod$inv_agricole_nrm = -UREC_prod$agricole_nrm +1
+# UREC_prod$inv_anthropique_nrm = -UREC_prod$anthropiqu_nrm +1
+# UREC_prod$inv_avrslope_nrm = -UREC_prod$avrslope_nrm +1
 names(UREC_prod)
 
-keep_prod = c('id_uea', 'rive', 'id', "inv_avrslope_nrm", 'hydcond_nrm', "hepb_nrm", "anthropiqu_nrm")
+keep_prod = c('id_uea', 'rive', 'id', "inv_avrslope_nrm", "hepb_nrm", "inv_anthropique_nrm", "inv_agrianthro_nrm")
 UREC_prod_sub = UREC_prod[,(names(UREC_prod)%in% keep_prod)]
 UREC_prod_sub = st_drop_geometry(UREC_prod_sub)
 #combine the tables together into metrics potentielles for ISEER
@@ -49,10 +50,10 @@ names(UREC_ISEER1)
 UREC_ISEER1_v = vect(UREC_ISEER1)
 #DO statistics on ISEER 
 cor_ISEER1 = Correlation_matrix(df = UREC_ISEER1_v, var2 = 'Initial metrics for first batch ISEER')
-
+write.csv(cor_ISEER1,file = 'C:/Meghana/Belgique/decembre/traitements/tbl_correlation_ISEER1.csv', row.names = FALSE)
 
 #Some sub PCA based on correlation plot. How to decide with correlated metrics to pick 
-#Veg Metrics : VegRatio, pd_VegOpti, ContinuitVegOpt 
+#Veg Metrics : VegRatio, pd_VegOpti, ContinuitVegOpt, inv_anthro
 keep_veg = c(
   "id",
   "rive",
@@ -71,21 +72,16 @@ keep_nat = c("id", "rive","id_uea","inv_avrslope_nrm","mean_heigh", "indice_nat_
 ISEER1_nat = UREC_ISEER1_v[,(names(UREC_ISEER1_v)%in% keep_nat)]
 pca_ISEER1_nat = PCA_graph_function(df = ISEER1_nat, df_name ='PCA metrics indice de nat', axe = c(1,2))
 
-#Indice inversetion anthropique, vs pd_VegOpt
-keep_anthro_pd = c("id", "rive","id_uea",'pd_vegetation_optimale_nrm','inv_anthropique_nrm' )
-ISEER1_antrho_pd = UREC_ISEER1_v[,(names(UREC_ISEER1_v)%in% keep_anthro_pd)]
-pca_ISEER1_antrho_pd = PCA_graph_function(df = ISEER1_antrho_pd, df_name ='PCA metrics indice antrho pd', axe = c(1,2))
 
 #Faire un deuxieme indice de ISEER avec les m/triques selectionner
-keep_ISEER2 = c("id", "rive","id_uea", "indice_nat_nrm",'inv_anthropique_nrm',"VegRatio_o",
-                
-                "T_canopyRati_nrm" ,"CanRatio_n" ,"hydcond_nrm" ,"hepb_nrm",  "inv_avrslope_nrm" )
-UREC_ISEER2 = UREC_ISEER1_v[,(names(UREC_ISEER1_v)%in% keep_ISEER2)]
+drop_iseer2 = c("continuity_vegetation_optiamle_nrm", "pd_vegetation_optimale_nrm","indice_nat_nrm" , "inv_avrslope_nrm","inv_anthro")
+UREC_ISEER2 = UREC_ISEER1_v[,(!names(UREC_ISEER1_v)%in% drop_iseer2)]
 pca_ISEER2 = PCA_graph_function(df = UREC_ISEER2, df_name = 'Metriques initiales non correles', axe = c(1,2))
 
 #Créer l'indice avec les métriques sélectionnées 
-UREC_ISEER2$FE1 = (UREC_ISEER2$T_canopyRati_nrm + UREC_ISEER2$indice_nat_nrm +
-                     UREC_ISEER2$hepb_nrm + UREC_ISEER2$inv_avrslope_nrm)/4
+UREC_ISEER2$FE1 = (UREC_ISEER2$T_canopyRati_nrm  +UREC_ISEER2$inv_agrianthro_nrm+
+                     UREC_ISEER2$mean_heigh + UREC_ISEER2$inv_anthropique_nrm+
+                     UREC_ISEER2$VegRatio_o)/5
 writeVector(UREC_ISEER2, 'C:/Meghana/Belgique/decembre/traitements/ISEER/indice_ISEER1.sqlite', filetype = 'SQLITE')
 writeVector(UREC_ISEER2, 'C:/Meghana/Belgique/decembre/traitements/ISEER/indice_ISEER1.shp')
 min(UREC_ISEER2$FE1)

@@ -84,11 +84,12 @@ UREC_merge_mtm7_a = UREC_merge_mtm7[3:4,]
 
 i=1
 r = 154
-UREC_merge_mtm=UREC_merge_mtm7
+UREC_merge_mtm=UREC_merge_mtm7[101:157,]
 UREC_merge_mtm$hepb = NA
 mnt_mtm = mnt_7
 
-
+urbain1 = st_read('C:/Meghana/Belgique/decembre/traitements/ut_urbain_vect.shp')
+urbain1 = st_transform(urbain1,st_crs(UREC_merge_mtm ))
 #New try -> Seems to work. Need to clear memory (sometimes turn on and off computers to clear hidden memory)
 #this is for MTM7 
 i=1
@@ -109,6 +110,9 @@ for (i in 1:nrow(UREC_merge_mtm)) {
   mnt_min = mnt_mask - min_max[1]
   rm(mnt_mask)
   rm(mnt_clip)
+  #mask urbain area and assign all pixels with urbain things a value of 0
+  mnt_mask_urb = terra::mask(mnt_min, urbain1, inverse = T, updatevalue = 0)
+
   #writeRaster(mnt_min,paste0('D:/Meghana/Ordi_CERFO/CERFO_LP010/Meghana/Belgique/donnees_brutes/LiDAR/MNT/MTM7/clip_mtm7/', rive_id, '.tif'), overwrite = T)
   values_mnt_mask = values(mnt_min)
   hePb = median(values_mnt_mask, na.rm = T)
@@ -119,8 +123,28 @@ for (i in 1:nrow(UREC_merge_mtm)) {
   
 }
 
-UREC_hepb_mtm7 = UREC_merge_mtm
-st_write(UREC_hepb_mtm7, 'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_mtm7_hepb.shp')
+   UREC_hepb_mtm8 = UREC_merge_mtm
+st_write(UREC_hepb_mtm8, 'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_mtm8_hepb_mask_urb.shp')
+st_write(UREC_hepb_mtm8, 'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_mtm8_hepb_mask_urb.sqlite')
+
+UREC_hepb_mtm7_1_50 = UREC_merge_mtm
+st_write(UREC_hepb_mtm7_1_50, 'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_hepb_mtm7_1_50.shp')
+st_write(UREC_hepb_mtm7_1_50, 'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_hepb_mtm7_1_50.sqlite')
+
+UREC_hepb_mtm7_50_100 = UREC_merge_mtm
+st_write(UREC_hepb_mtm7_50_100, 'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_hepb_mtm7_50_100.shp')
+st_write(UREC_hepb_mtm7_50_100, 'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_hepb_mtm7_50_100.sqlite')
+
+UREC_hepb_mtm7_100_157 = UREC_merge_mtm
+st_write(UREC_hepb_mtm7_100_157, 'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_hepb_mtm7_100_157.shp')
+st_write(UREC_hepb_mtm7_100_157, 'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_hepb_mtm7_100_157.sqlite')
+
+#####Merge new set of UREC files 
+UREC_merge_hep = rbind(UREC_hepb_mtm8,UREC_hepb_mtm7_1_50) 
+UREC_merge_hep = rbind(UREC_merge_hep,UREC_hepb_mtm7_50_100 )
+UREC_merge_hep = rbind(UREC_merge_hep,UREC_hepb_mtm7_100_157 )
+st_write(UREC_merge_hep,'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_hepb_mask_urb.shp')
+st_write(UREC_merge_hep,'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_hepb_mask_urb.sqlite')
 
 #########MERGE both help UREC files 
 UREC_hepb_mtm8 = st_read( 'C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_mtm8_hepb.shp')

@@ -76,6 +76,7 @@ LateralWidthFunction <- function(UREC_merge, UEA_merge){
 }
 
 
+
 continuity_metric <- function(UREC_full, path_sampling, raster_UT, classe_UT) {
   #UREC_full = shapefile of UREC (UREC_merge) as sf data.frame
   #path_sampling : character string leading to folder where the individual sampling files are for each UREC. 
@@ -115,6 +116,39 @@ continuity_metric <- function(UREC_full, path_sampling, raster_UT, classe_UT) {
   return (UREC_full)
 }
 
+fragstat_function <- function(raster_file, UREC_merge, occ_sol) {
+  #raster_file : Raster file of land use you want to know frastat metrics for (i.e masked to forest, or masked to MH, or masked to Vegetation optimale)
+  #UREC_merge : sf object of spatial units (all in one objects with many features) this should be reprojected to raster file crs beforehand.
+  #occ_sol : string of land use type you are doing the fragstats on. The string will be add as a suffix to pd_ and area_ and will denote the column names in the resulting table (eg: pd_VegOpt)
+  
+  
+  pd_vegOpt = paste0('pd_',occ_sol)#create new columns with specific name
+  UREC_merge[,pd_vegOpt]=NA
+  area_VegOpt = paste0('area_',occ_sol)
+  UREC_merge[,area_VegOpt]=NA
+  for (i in 1:nrow(UREC_merge)){
+    UREC_sf = UREC_merge[i,]
+    UREC_v = vect(UREC_merge[i,])
+    UREC_name = UREC_merge[i,]
+    UREC_name=  sub(".*UREC_rives_new/", "", UREC_name)
+    UREC_name = sub(".shp.*", "", UREC_name) 
+    
+    ####Cut raster file to area of UREC
+    UREC_sf = st_transform(UREC_sf, crs = st_crs(raster_file)) # project vector UREC file to same projection as raster file
+    
+    raster_file_clip = terra::crop(raster_file, UREC_sf)
+    raster_urec = rasterize(UREC_sf, raster_file_clip)
+    raster_file_clip_m = terra::mask(raster_file_clip, raster_urec)
+    
+    #Calculate landscape metrics
+    area_mn =  lsm_l_area_mn(raster_file_clip_m) #Mean area of patches
+    pd = lsm_l_pd(raster_file_clip_m) #Patch Density
+    #Add values to UREC table based on primary key
+    UREC_merge[i,area_VegOpt] = area_mn$value
+    UREC_merge[i,pd_vegOpt] = pd$value
+  }
+  return(UREC_merge)  
+}
 PDV_fragementation_metric_function <- function(UREC_full, raster_file, col_name) {
   #UREC_full = shapefile of UREC (UREC_merge) as sf data.frame
   #raster = raster of Utilisation du territoire masked for values we are interested in. e.g.  <Forest> (need to do this step beforehand , in ArcMap sometimes)
@@ -173,6 +207,7 @@ Indice_Naturalite_functions <-function(UREC_merge, raster_file, csv_class_corres
     #Get frequency of each class in the raster 
     freq_dist = freq(ut_mask)
     freq_dist= as.data.frame(freq_dist)
+    freq_dist$value = as.numeric(freq_dist$value)
     #freq_dist$value = as.data.frame.integer(freq_dist$value) 
     # join_tbl = left_join(freq_dist, IQBR_UT_2018_correspondence, c('value'='Value')) #raster needs to be loaded with raster library to work 
     join_tbl = left_join(freq_dist, csv_class_correspondence, c('value'= 'CODE_UT'))
@@ -191,7 +226,6 @@ Indice_Naturalite_functions <-function(UREC_merge, raster_file, csv_class_corres
   return(UREC_merge)
 }
 
-
 OverhangingCanopy <- function(UREC_water, raster_file, EPSG,  urban_vector_mask){
   #UREC_water : spatVector file of water surface per UREC that has been reprojected to match raster file projetion and clipped to extent of raster_file (see main)
   #raster_file : raster file (or vrt) of MHC mosaic split based on projection (either MTM7 or MTM8)
@@ -204,7 +238,8 @@ OverhangingCanopy <- function(UREC_water, raster_file, EPSG,  urban_vector_mask)
     waters_sf = st_as_sf(water) #load polygon as sf object to be used in exact extract
     
     vrt_mhc_mask7_clip = terra::crop(raster_file, waters_sf)
-    vrt_mhc_mask7_clip = vrt_mhc_mask7_clip[vrt_mhc_mask7_clip>1.5]
+    vrt_mhc_mask7_clip[vrt_mhc_mask7_clip<1.5]<-NA
+    #vrt_mhc_mask7_clip = vrt_mhc_mask7_clip[vrt_mhc_mask7_clip>1.5]
     water_raster = terra::rasterize(waters_sf, vrt_mhc_mask7_clip)
     vrt_mhc_mask7_water = terra::mask(vrt_mhc_mask7_clip, water_raster)
     porj_urbain = terra::project(urban_vector_mask, EPSG)
@@ -219,7 +254,6 @@ OverhangingCanopy <- function(UREC_water, raster_file, EPSG,  urban_vector_mask)
   }
   return(UREC_water)
 }
-
 
 IQBR_functions <-function(UREC_merge, raster_file, csv_class_correspondence ){
   #UREC_merge = sf file of all spatiale units
@@ -254,7 +288,6 @@ IQBR_functions <-function(UREC_merge, raster_file, csv_class_correspondence ){
   }
   return(UREC_merge)
 }
-
 
 TreeStats <- function(UREC_merge, raster_file, EPSG,  urban_vector_mask){
   #UREC_merge : spatVector file of feature surface per UREC that has been reprojected to match raster file projetion and clipped to extent of raster_file (see main)
@@ -314,6 +347,14 @@ NumberClasses <- function(UREC_merge, raster_file){
   return(UREC_merge)
 }
 
+
+UREC_merge = UREC_merge
+csv_class_correspondence = csv__class_correspondence
+raster_file = ut19_full
+r=1
+
+
+
 SurfaceClass <-
   function (UREC_merge,
             csv_class_correspondence,
@@ -322,7 +363,10 @@ SurfaceClass <-
     #UREC_merge = sf file of all spatiale units
     #raster_file = raster file of utilisation du territoire cliped to only have area covered by spatial units !!!Has to be loaded with raster library: raster("file_path")
     #csv__class_correspondence : group csv of class correspondence between UT classes and Values. This needs to be grouped by using group_by function with CODE UT column
-    
+    UREC_merge$Anthropique = 0
+    UREC_merge$Forestier = 0
+    UREC_merge$Agricole = 0
+    UREC_merge$Humide = 0
     for (r in 1:nrow(UREC_merge)) {
       shp = UREC_merge[r, ]
       print(paste0('reading', shp$id))
@@ -334,33 +378,52 @@ SurfaceClass <-
       #Get frequency of each class in the raster
       freq_dist = freq(ut_mask)
       freq_dist = as.data.frame(freq_dist)
+      freq_dist$value = as.numeric(freq_dist$value)
       
       #freq_dist$value = as.data.frame.integer(freq_dist$value)
       # join_tbl = left_join(freq_dist, IQBR_UT_2018_correspondence, c('value'='Value')) #raster needs to be loaded with raster library to work
       join_tbl = left_join(freq_dist,
                            csv_class_correspondence,
                            c('value' = 'CODE_UT'))
+      drop_j = c('OID_')
+      join_tbl=join_tbl[ , !names(join_tbl) %in% drop_j] #Drop column with Na (OID_)
       join_tbl = na.omit(join_tbl) #remove NA from table
-      total_pix = sum(join_tbl$count) #Count the number of pixels to get proportional coverage
-      join_tbl$perc_coverage = round((join_tbl$count / total_pix), 2)
-      summarize_joint_tbl = join_tbl %>% group_by(DESC_CAT) %>% dplyr::summarise(prop_surf = sum(perc_coverage))
-      
-      df_summarize_joint_tbl = as.data.frame(summarize_joint_tbl)
-      transpose = as.data.frame(t(df_summarize_joint_tbl))
-      names(transpose)<- transpose[1,] #make first row column names
-      
-      
-      transpose <- transpose[-1,] #remove first row that now is present twice
-      
-      for (c in colnames(transpose)){
-        UREC_merge[r,c] = transpose[,c]
-      } 
-      
+    total_pix = sum(join_tbl$count) #Count the number of pixels to get proportional coverage
+    join_tbl$perc_coverage = round((join_tbl$count / total_pix), 2)
+    summarize_joint_tbl = join_tbl %>% group_by(DESC_CAT) %>% dplyr::summarise(prop_surf = sum(perc_coverage))
+   
+    
+    
+     df_summarize_joint_tbl = as.data.frame(summarize_joint_tbl)
+    transpose = t(df_summarize_joint_tbl)
+    names(transpose)<- transpose[1,] #make first row column names
+    transpose <- transpose[-1,] #remove first row that now is present twice
+     for (c in colnames(transpose)){
+      UREC_merge[r,c] = transpose[,c]
+    }
+    
+       ###
+      #query = ((join_tbl$DESC_CAT == 'Forestier') |(join_tbl$DESC_CAT == 'Agricole')|(join_tbl$DESC_CAT == 'Anthropique')|(join_tbl$DESC_CAT == 'Humide'))
+      # query =join_tbl$DESC_CAT != 'Aquatique'
+      # filter_tbl = filter(join_tbl, query)
+      # total_pix_n = sum(filter_tbl$count)
+      # filter_tbl$perc_coverage = round(filter_tbl$count/total_pix_n,2)
+      # summarize_filter_tbl = filter_tbl %>% group_by(DESC_CAT) %>% dplyr::summarise(prop_surf = sum(perc_coverage))
+      # df_summarize_filter_tbl = as.data_frame(summarize_filter_tbl)
+      # transpose_filter_tbl = as.data.frame(t(df_summarize_filter_tbl))
+      # names(transpose_filter_tbl)<- transpose_filter_tbl[1,] #make first row column names
+      # transpose_filter_tbl <- transpose_filter_tbl[-1,] #remove first row that now is present twice
+      # for (c in colnames(transpose_filter_tbl)){
+      #     UREC_merge[r,c] = as.numeric(transpose_filter_tbl[,c])
+      # }
+     
     }
     return(UREC_merge)
     
   }
 
+
+i=1
 #Create function for average slope
 AverageSlope <- function(UREC_merge, slope_raster){
   #UREC_merge : SpatVector of special units overlapping raster projection (ie MTM7 or MTM8)
@@ -372,7 +435,8 @@ AverageSlope <- function(UREC_merge, slope_raster){
     features_sf = st_as_sf(feature) #load polygon as sf object to be used in exact extract
     features_sf = st_transform(features_sf, st_crs(slope_raster))
     slope_crop = terra::crop(slope_raster, features_sf)
-    #slope_crop_mask  = terra::mask(slope_crop, feature)
+    #urb_crop = terra::crop(mask_urbain, feature)
+    #slope_crop_mask_urb  = terra::mask(slope_crop, mask_urbain_rast)
     
     feature$avrSlope =as.numeric(exactextractr::exact_extract(slope_crop, features_sf, 'mean'))
     UREC_merge[i,]$avrSlope = feature$avrSlope

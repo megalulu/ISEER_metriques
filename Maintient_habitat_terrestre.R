@@ -2,19 +2,21 @@
 
 #Statistics des arbres#
 ut19_Urbain_vec = vect('C:/Meghana/Belgique/decembre/data/polygon_UT_urban.shp')
-UREC_merge = st_read('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1.shp')
+#UREC_merge = st_read('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1.shp')
+UREC_merge = st_read('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1_water.shp')#this is all the urec cut to exclud area with water
+
 UREC_merge = vect(UREC_merge)
 vrt_mhc_mask7 = rast('C:/Meghana/Belgique/decembre/traitements/MHC_mask/mhc7_mask.vrt')
 vrt_mhc_mask8 = rast('C:/Meghana/Belgique/decembre/traitements/MHC_mask/MTM8/MTM8.vrt')
-raster_file = vrt_mhc_mask8
+raster_file = vrt_mhc_mask7
 
-EPSG= 'EPSG:2950'
+EPSG= 'EPSG:2949'
 urban_vector_mask = ut19_Urbain_vec
 exent7 = ext(raster_file)
 UREC_merge_v7 = UREC_merge
 UREC_merge_v7 = terra::project(UREC_merge, crs(raster_file))
 UREC_merge_v7 = raster::crop(UREC_merge_v7, exent7)
-UREC_merge = UREC_merge_v7
+UREC_merge = UREC_merge_v7[1:20,]
 
 
 
@@ -25,27 +27,55 @@ test = TreeStats(UREC_merge = UREC_merge_v7, raster_file = raster_file, EPSG = E
 writeVector(test, 'C:/Meghana/Belgique/decembre/traitements/treeStats2.sqlite', filetype = 'SQLITE')
 
 #NEW runs of treeStats
-UREC_merge_mtm7 = vect('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1_MTM7.shp')
+#UREC_merge_mtm7 = vect('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1_MTM7.shp')
+UREC_merge_mtm7 = vect('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1_water_MTM7.shp')
+UREC_merge_mtm7 = terra::project(UREC_merge_mtm7, crs(raster_file))
+
+UREC_merge_mtm7 = UREC_merge_mtm7[101:157,]
 tree_stats_mtm7 = TreeStats(UREC_merge = UREC_merge_mtm7, raster_file = vrt_mhc_mask7, EPSG = EPSG, urban_vector_mask = urban_vector_mask)
+writeVector(tree_stats_mtm7, 'C:/Meghana/Belgique/decembre/traitements/fonction_habitat/UREC_Water/tree_stats_mtm7_1_20.shp')
+tree_stats_mtm7_21_100 = TreeStats(UREC_merge = UREC_merge_mtm7, raster_file = vrt_mhc_mask7, EPSG = EPSG, urban_vector_mask = urban_vector_mask)
+writeVector(tree_stats_mtm7_21_100, 'C:/Meghana/Belgique/decembre/traitements/fonction_habitat/UREC_Water/tree_stats_mtm7_20_100.shp')
+tree_stats_mtm7_101_157 = TreeStats(UREC_merge = UREC_merge_mtm7, raster_file = vrt_mhc_mask7, EPSG = EPSG, urban_vector_mask = urban_vector_mask)
+writeVector(tree_stats_mtm7_101_157, 'C:/Meghana/Belgique/decembre/traitements/fonction_habitat/UREC_Water/tree_stats_mtm7_100_157.shp')
 
 #NEW runs of treeStats
-UREC_merge_mtm8 = vect('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1_MTM8.shp')
-mhc_list_files = list.files('C:/Meghana/Belgique/decembre/traitements/MHC_mask/MTM8', pattern = '*.tif')
-mhc_output = 'C:/Meghana/Belgique/decembre/traitements/MHC_mask/MTM8/mhc_mtm8_new.vrt'
+UREC_merge_mtm8 = vect('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1_wtaer_MTM8.shp')
+UREC_merge_mtm8 = terra::project(UREC_merge_mtm8, crs(vrt_8))
 
-terra::vrt(mhc_list_files, mhc_output)
+mhc_list_files = list.files('C:/Meghana/Belgique/decembre/traitements/MHC_mask/MTM8', pattern = '*.tif', full.names = T)
+mhc_output = 'C:/Meghana/Belgique/decembre/traitements/MHC_mask/MTM8/mhc_mtm8_new1.vrt'
 
-gdal.BuildVRT(mhc_output, mhc_list_files, options=vrt_options)
+terra::vrt(x = mhc_list_files, filename =  mhc_output)
+vrt_8 = rast(mhc_output)
+library(gdalUtils)
+
+gdal.BuildVRT( mhc_list_files, mhc_output)
 
 
 vrt_mhc_mask8
-UREC_merge_mtm8= UREC_merge_mtm8[1,]
-tree_stats_mtm8 = TreeStats(UREC_merge = UREC_merge_mtm8, raster_file = vrt_mhc_mask8, EPSG = EPSG, urban_vector_mask = urban_vector_mask)
+UREC_merge_mtm8= UREC_merge_mtm8
+tree_stats_mtm8 = TreeStats(UREC_merge = UREC_merge_mtm8, raster_file = vrt_8, EPSG = EPSG, urban_vector_mask = urban_vector_mask)
+writeVector(tree_stats_mtm8, 'C:/Meghana/Belgique/decembre/traitements/fonction_habitat/UREC_Water/tree_stats_mtm8.shp', overwrite = T)
+tree_stats_mtm8 = terra::project(tree_stats_mtm8, crs(UREC_merge))
 
-tree_stats = rbind(tree_stats_mtm7,tree_stats_mtm8)
-writeVector(tree_stats,'C:/Meghana/Belgique/decembre/traitements/treeStats_full.sqlite', filetype = 'SQLITE' )
+tree_stats = rbind(tree_stats_mtm7,tree_stats_mtm7_21_100)
+tree_stats = rbind(tree_stats,tree_stats_mtm7_101_157 )
+tree_stats = terra::project(tree_stats, crs(UREC_merge))
+tree_stats = rbind(tree_stats,tree_stats_mtm8 )
 
-c = tree_stats[11:12,]
+
+writeVector(tree_stats,'C:/Meghana/Belgique/decembre/traitements/fonction_habitat/UREC_Water/treeStats_full.sqlite', filetype = 'SQLITE' )
+writeVector(tree_stats,'C:/Meghana/Belgique/decembre/traitements/fonction_habitat/UREC_Water/treeStats_full.shp', filetype = 'ESRI shapefile' )
+
+
+
+
+
+
+
+
+
 
 
 
@@ -55,9 +85,11 @@ UREC_merge = st_read('C:/Meghana/Belgique/decembre/traitements/UREC_maintienHabT
 UREC_merge = st_transform(UREC_merge, crs(raster_file))
 UREC_merge = st_crop(UREC_merge, exent7)
 UREC_merge = vect(UREC_merge)#re transform into spatvector
+##################################
+
 ####Ratio de la surface de la canopee et des surfaces vegetale sur l'aire totale de l'UREC####
 ###Canopee ratio
-i = 134
+i = 1
 CanopyRatio <- function(UREC_merge, raster_file, EPSG,  urban_vector_mask){
   #UREC_merge : spatVector file of feature surface per UREC that has been reprojected to match raster file projetion and clipped to extent of raster_file (see main)
   #raster_file : raster file (or vrt) of MHC mosaic split based on projection (either MTM7 or MTM8)
@@ -91,17 +123,24 @@ CanopyRatio <- function(UREC_merge, raster_file, EPSG,  urban_vector_mask){
   return(UREC_merge)
 }
 
-testCanRatio8 = CanopyRatio(UREC_merge = UREC_merge, raster_file = raster_file, EPSG = EPSG, urban_vector_mask= urban_vector_mask)
-writeVector(testCanRatio8, 'C:/Meghana/Belgique/decembre/traitements/CanRatio8.sqlite', filetype = 'SQLITE', overwrite = TRUE)
+testCanRatio8 = CanopyRatio(UREC_merge = UREC_merge_mtm8, raster_file = vrt_8, EPSG = EPSG, urban_vector_mask= urban_vector_mask)
+writeVector(testCanRatio8, 'C:/Meghana/Belgique/decembre/traitements/fonction_habitat/UREC_Water/CanRatio8.sqlite', filetype = 'SQLITE')
+testCanRatio8 = terra::project(testCanRatio8, crs(UREC_merge))
 
-testCanRatio7 = CanopyRatio(UREC_merge = UREC_merge, raster_file = raster_file, EPSG = EPSG, urban_vector_mask= urban_vector_mask)
+
+testCanRatio7 = CanopyRatio(UREC_merge = UREC_merge_mtm7, raster_file = raster_file, EPSG = EPSG, urban_vector_mask= urban_vector_mask)
 #Select columns we are interested in 
 testCanRatio7 = testCanRatio7[,c("id_uea","rive","id", "meanheight", "medianheig","sdheight","majorityhe","CanopyRatio")]
-writeVector(testCanRatio7, 'C:/Meghana/Belgique/decembre/traitements/CanRatio7.sqlite', filetype = 'SQLITE', overwrite = TRUE)
+writeVector(testCanRatio7, 'C:/Meghana/Belgique/decembre/traitements/fonction_habitat/UREC_Water/CanRatio7.sqlite', filetype = 'SQLITE')
+testCanRatio7 = terra::project(testCanRatio7, crs(UREC_merge))
+
+CanRatio_urec_water = rbind(testCanRatio8, testCanRatio7)
+writeVector(CanRatio_urec_water, 'C:/Meghana/Belgique/decembre/traitements/fonction_habitat/UREC_Water/CanRatio_full.sqlite', filetype = 'SQLITE', overwrite = T)
 
 #New tests Canopy Ratio
 test2CanRatio8 = CanopyRatio(UREC_merge = UREC_merge_mtm8, raster_file = vrt_mhc_mask8, EPSG = EPSG, urban_vector_mask= urban_vector_mask)
 test2CanRatio7 = CanopyRatio(UREC_merge = UREC_merge_mtm7, raster_file = vrt_mhc_mask7, EPSG = 'EPSG:2949', urban_vector_mask= urban_vector_mask)
+
 test2CanRatio = rbind(test2CanRatio7,test2CanRatio8)
 
 

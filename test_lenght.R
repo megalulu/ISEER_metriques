@@ -1,5 +1,7 @@
 #Lenght test
-UREC_merge = st_read('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1.shp')
+#UREC_merge = st_read('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1.shp')
+UREC_merge = st_read('C:/Meghana/Belgique/decembre/data/UREC_mergeValid1_water.shp')#this is all the urec cut to exclud area with water
+
 UEA_merge = st_read('C:/Meghana/Belgique/decembre/data/UEA_merge_new.shp')
 #semis = st_read('C:/Meghana/Belgique/decembre/traitements/semis1.shp')
 voronoi = st_read('C:/Meghana/Belgique/decembre/traitements/voronoi1.shp')
@@ -30,11 +32,11 @@ return(UREC_merge)
   
 
 # 
- UREC_merge = UREC_merge[142,]
+ UREC_merge = UREC_merge[1,]
 # UREC_merge = UREC_merge[1,]
 # UEA_merge = UEA_merge[61,]
 UREC_merge_width = LateralWidthFunction(UREC_merge = UREC_merge, UEA_merge = UEA_merge, voronoi = voronoi)
-st_write(UREC_merge_width,'C:/Meghana/Belgique/decembre/traitements/UREC_lateral_width.shp' )
+st_write(UREC_merge_width,'C:/Meghana/Belgique/decembre/traitements/fonction_habitat/UREC_Water/UREC_lateral_width.shp' )
 
 
 # n_occur = data.frame(table(UREC_merge$Id_UEA))

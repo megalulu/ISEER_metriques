@@ -24,13 +24,24 @@ names(UREC_vegOpt)
 #Siigsol 
 UREC_sol = st_read('C:/Meghana/Belgique/decembre/traitements/results_urec_hydrocond.shp')
 UREC_sol = st_drop_geometry(UREC_sol)
+#Siigsol urbain
+UREC_sol_urb = st_read('C:/Meghana/Belgique/decembre/traitements/SIIGSOL_traitements/results_urec_hydrocond_maskUrb.shp')
+#UREC_sol_urb["HydCond"][is.na(UREC_sol_urb["HydCond"])] <-0
+UREC_sol_urb = st_drop_geometry(UREC_sol_urb)
+UREC_sol_urb["HydCond"][is.na(UREC_sol_urb["HydCond"])] <-0
+
 #Pente
 UREC_pente = st_read('C:/Meghana/Belgique/decembre/traitements/UREC_slope.shp')
 UREC_pente = st_drop_geometry(UREC_pente)
 #Hand 
 UREC_hand = st_read('C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_hepb.shp')
 UREC_hand = st_drop_geometry(UREC_hand)
+#Hand urb 
+UREC_hand_urb = st_read('C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_hepb_mask_urb.shp')
+UREC_hand_urb= st_drop_geometry(UREC_hand_urb)
+UREC_hand_urb["hepb"][is.na(UREC_hand_urb["hepb"])] <- 0
 
+#################
 UREC_prod = left_join(UREC_merge, UREC_m1, by = 'id', copy = FALSE)
 UREC_prod = left_join(UREC_prod, UREC_vegOpt, by = 'id', copy = FALSE)
 UREC_prod = left_join(UREC_prod, UREC_sol, by = 'id', copy = FALSE)
@@ -45,22 +56,39 @@ drop_prod = c("Id_UEA.x", "rive.x", "Id_UEA.y","rive.y", "Id_UEA.x.x" , "rive.x.
               "Id_UEA.y.y",  "rive.y.y" )
 UREC_prod =  UREC_prod[,!(names(UREC_prod) %in% drop_prod)]
 names(UREC_prod)
-
 # st_write(UREC_prod, 'C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod.shp')
 # st_write(UREC_prod, 'C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod.sqlite')
 
 
 
+###########
+#Do join for metrics masked for urban areas 
+UREC_prod_urb = left_join(UREC_merge, UREC_m1, by = 'id', copy = FALSE)
+UREC_prod_urb = left_join(UREC_prod_urb, UREC_vegOpt, by = 'id', copy = FALSE)
+UREC_prod_urb = left_join(UREC_prod_urb, UREC_sol_urb, by = 'id', copy = FALSE)
+UREC_prod_urb = left_join(UREC_prod_urb, UREC_pente, by = 'id', copy = FALSE)
+UREC_prod_urb = left_join(UREC_prod_urb, UREC_hand_urb, by = 'id', copy = FALSE)
+UREC_prod_urb$rive = UREC_prod_urb$rive.x
+UREC_prod_urb$id_uea = UREC_prod_urb$Id_UEA.x
+drop_prod_urb = c("Id_UEA.x", "rive.x","rive.y", "Id_UEA.y", "rive.x.x",  "Id_UEA","rive.y.y")
+UREC_prod_urb =  UREC_prod_urb[,!(names(UREC_prod_urb) %in% drop_prod_urb)]#use same drop list as previously
+names(UREC_prod_urb)
 
 
+####Load data from new surface test 
+UREC_surface_new = test_surface
+UREC_surface_new$AgriAnthro = UREC_surface_new$Anthropique+UREC_surface_new$Agricole
 
-
-
-
-
-
-
-
+#Creat new prod data set 
+UREC_prod_urb2 = left_join(UREC_surface_new, UREC_vegOpt, by = 'id', copy = FALSE)
+UREC_prod_urb2 = left_join(UREC_prod_urb2, UREC_sol_urb, by = 'id', copy = FALSE)
+UREC_prod_urb2 = left_join(UREC_prod_urb2, UREC_pente, by = 'id', copy = FALSE)
+UREC_prod_urb2 = left_join(UREC_prod_urb2, UREC_hand_urb, by = 'id', copy = FALSE)
+UREC_prod_urb2$rive = UREC_prod_urb2$rive.x
+UREC_prod_urb2$id_uea = UREC_prod_urb2$Id_UEA.x
+drop_prod_urb2 = c("Id_UEA.x", "rive.x","rive.y", "Id_UEA.y", "rive.x.x",  "Id_UEA","rive.y.y")
+UREC_prod_urb2 =  UREC_prod_urb2[,!(names(UREC_prod_urb2) %in% drop_prod_urb2)]#use same drop list as previously
+names(UREC_prod_urb2)
 
 
 
@@ -70,7 +98,7 @@ names(UREC_prod)
 UREC_prod_nrm = Normalization_function(UREC_merge = UREC_prod)
 # st_write(UREC_prod_nrm, 'C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_nrm.shp')
 # st_write(UREC_prod_nrm, 'C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_nrm.sqlite')
-#prod_nrm = st_read('C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_nrm.sqlite')
+prod_nrm = st_read('C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_nrm.sqlite')
 prod_nrm = UREC_prod_nrm
 names(prod_nrm)#prod_nrm = UREC_prod_nrm
 keep_nrm = c("id","id_uea",
@@ -289,6 +317,214 @@ ggplot(df_long, aes(x = row_name, y = value, color = variable)) +
   ylim(0, 1) +
   scale_color_manual(values = c("mean" = "red", "standard deviation" = "blue", "median"= "green", 'min' = 'black', 'max'= 'yellow')) +
   labs(color = "Variable")
+
+
+####################################################################################
+#New set of data with urb mask 
+#Created the new set at top part 
+#Normalization of metriques productivite urb
+#UREC_prod_v = vect(UREC_prod)
+UREC_prod_urb_nrm = Normalization_function(UREC_merge = UREC_prod_urb)
+# st_write(UREC_prod_nrm, 'C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_nrm.shp')
+# st_write(UREC_prod_nrm, 'C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_nrm.sqlite')
+#prod_nrm = st_read('C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_nrm.sqlite')
+prod_urb_nrm = UREC_prod_urb_nrm
+names(prod_urb_nrm)#prod_nrm
+
+#Only keep columns we need to run stats
+keep_prod_urb1 = c("id" ,"id_uea", "rive","agricole_nrm","anthropique_nrm",
+                   "AgriAnthro_nrm" , "VegRatio_o_nrm",  "HydCond_nrm",
+                   "avrSlope_nrm", "hepb_nrm")
+prod_urb_nrm1 = prod_urb_nrm[,names(prod_urb_nrm) %in% keep_prod_urb1]
+names(prod_urb_nrm1)
+prod_urb_nrm1_v = vect(prod_urb_nrm1)
+prod_urb_nrm1_cor= Correlation_matrix(df = prod_urb_nrm1_v, var2 = 'correlation metric urb')
+########################
+####################NEW SET OF DATA WITH URB MASK AND NEW SURFACE CLASSES
+
+UREC_prod_urb2_nrm = Normalization_function(UREC_prod_urb2)
+names(UREC_prod_urb2_nrm)
+keep_urb2_nrm = c("id", "rive", "id_uea","Anthropique_nrm", "Forestier_nrm" ,"Agricole_nrm",
+                  "Humide_nrm", "AgriAnthro_nrm",  "VegRatio_o_nrm",  "HydCond_nrm",
+                  "avrSlope_nrm",  "hepb_nrm")
+prod_urb2 = UREC_prod_urb2_nrm[,names(UREC_prod_urb2_nrm)%in% keep_urb2_nrm]
+st_write(prod_urb2, 'C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_urb_srf_nrm.sqlite')
+prod_ubr2_v = vect(prod_urb2)
+names(prod_urb2)
+
+prod_urb2_cor = Correlation_matrix(df = prod_ubr2_v, var2 = 'Correlation urb/surf')
+prod_urb2_pca = PCA_graph_function(df = prod_ubr2_v, df_name = 'Urb and surf', axe = c(1,2))
+
+#Indices avec urb et nouvelle surface
+#Make sure to inverse certain metrics
+prod_ubr2_v$inv_AgriAnthro_nrm = -prod_ubr2_v$AgriAnthro_nrm +1
+prod_ubr2_v$inv_Anthropique_nrm = -prod_ubr2_v$Anthropique_nrm +1
+prod_ubr2_v$inv_avrSlope_nrm = -prod_ubr2_v$avrSlope_nrm +1
+
+prod_ubr2_v$Fe1 = (prod_ubr2_v$inv_AgriAnthro_nrm + prod_ubr2_v$Humide +
+                     prod_ubr2_v$inv_Anthropique_nrm + prod_ubr2_v$hepb_nrm +
+                     prod_ubr2_v$inv_avrSlope_nrm)/5
+
+windows(10,5)
+plot(prod_ubr2_v$Fe1)
+
+
+####Nouvelle statistiques sans forestier et humide
+drop_urb2 = c("Forestier_nrm", 'Fe1',"Humide_nrm", "inv_AgriAnthro_nrm",'inv_Anthropique_nrm','inv_avrSlope_nrm' )
+prod_ubr3_v = prod_ubr2_v[,!names(prod_ubr2_v)%in% drop_urb2]
+
+prod_ubr3_v_cor = Correlation_matrix(df =prod_ubr3_v, var2 = 'correlation ' )
+prod_ubr3_v_pca = PCA_graph_function(df = prod_ubr3_v, df_name = 'Urb and surf', axe = c(1,2))
+
+#Indice de FE 
+prod_ubr3_v$inv_AgriAnthro_nrm = -prod_ubr3_v$AgriAnthro_nrm +1
+prod_ubr3_v$inv_avrSlope_nrm = - prod_ubr3_v$avrSlope_nrm +1
+prod_ubr3_v$inv_Anthropique_nrm = - prod_ubr3_v$Anthropique_nrm +1
+
+prod_ubr3_v$Fe1 = (prod_ubr3_v$inv_AgriAnthro_nrm +
+                         prod_ubr3_v$inv_Anthropique_nrm +
+                         prod_ubr3_v$inv_avrSlope_nrm +
+                         prod_ubr3_v$hepb_nrm)/4
+writeVector(prod_ubr3_v, 'C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_prod_urb_srf3_nrm.sqlite', filetype = 'SQLITE', overwrite = T)
+windows(10,5)
+plot(prod_ubr3_v$Fe1)
+summary(prod_ubr3_v$Fe1)
+c = d
+################################################################
+
+#Calcules des statistiques des metriques sans prendre en compte la zone eau
+################################################################################
+#Load new data 
+
+#Surface relative 
+test_surface_aqua = st_read( "C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_surfaces_UT_sans_eau.sqlite")
+test_surface_aqua_n = test_surface_aqua 
+drop_aqua_n = c("non.classifié",  "coupe.et.régénération", "sol.nu.et.lande" , "agrianthro" )
+test_surface_aqua_n = test_surface_aqua_n[,!names(test_surface_aqua_n) %in% drop_aqua_n]
+test_surface_aqua_n$vegetation = (test_surface_aqua_n$forestier + test_surface_aqua_n$agricole + test_surface_aqua_n$humide)
+names(test_surface_aqua_n)
+
+#pente 
+UREC_pente = st_read('C:/Meghana/Belgique/decembre/traitements/UREC_slope.shp')
+UREC_pente = st_drop_geometry(UREC_pente)
+
+#Hand urb 
+UREC_hand_urb = st_read('C:/Meghana/Belgique/decembre/traitements/Hauteur_emerge/UREC_hepb_mask_urb.shp')
+UREC_hand_urb= st_drop_geometry(UREC_hand_urb)
+UREC_hand_urb["hepb"][is.na(UREC_hand_urb["hepb"])] <- 0
+
+#Siigsol urbain
+UREC_sol_urb = st_read('C:/Meghana/Belgique/decembre/traitements/SIIGSOL_traitements/results_urec_hydrocond_maskUrb.shp')
+UREC_sol_urb = st_drop_geometry(UREC_sol_urb)
+UREC_sol_urb["HydCond"][is.na(UREC_sol_urb["HydCond"])] <-0
+
+UREC_prod_aqau = test_surface_aqua_n
+UREC_prod_aqau = left_join(UREC_prod_aqau, UREC_pente, by = 'id', copy = FALSE)
+UREC_prod_aqau = left_join(UREC_prod_aqau, UREC_sol_urb, by = 'id', copy = FALSE)
+UREC_prod_aqau = left_join(UREC_prod_aqau, UREC_hand_urb, by = 'id', copy = FALSE)
+UREC_prod_aqau$rive = UREC_prod_aqau$rive.x
+UREC_prod_aqau$id_uea = UREC_prod_aqau$id_uea.x
+drop_prod_aqau = c( "rive.x", "id_uea.x", "Id_UEA.x", "rive.y", "id_uea.y" ,"rive.x.x",
+                    "Id_UEA.y" ,"rive.y.y" )
+UREC_prod_aqau =UREC_prod_aqau[,!names(UREC_prod_aqau)%in% drop_prod_aqau]
+names(UREC_prod_aqau)
+UREC_prod_aqau[is.na(UREC_prod_aqau)] <- 0
+
+
+#normalise data 
+norm_UREC_prod_aqau = Normalization_function(UREC_merge = UREC_prod_aqau)
+keep_prod_aqau_nrm = c('id', "rive" ,"id_uea","anthropique_nrm",
+                       "forestier_nrm"  , "agricole_nrm"  ,  "humide_nrm",
+                       "vegopt_nrm"  ,    "avrSlope_nrm"  ,  "HydCond_nrm",
+                       "hepb_nrm",   "vegetation_nrm" )
+norm_UREC_prod_aqau_1 = norm_UREC_prod_aqau[,names(norm_UREC_prod_aqau)%in% keep_prod_aqau_nrm ]
+st_write(norm_UREC_prod_aqau_1, "C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_metriques_regulation_prod_nrm.sqlite", delete_layer = T )
+norm_UREC_prod_aqau_1_v = vect(norm_UREC_prod_aqau_1) #dont forget to make this in spatvector to run correlation matrix
+cor_UREC_prod_aqau =Correlation_matrix(df = norm_UREC_prod_aqau_1_v, var2 = 'correlation metrics without aqua')
+#Faire une PCA avec toutes les métriques possible
+pca_UREC_prod_aqau = PCA_graph_function(df =norm_UREC_prod_aqau_1_v, df_name = 'PCA metriques without aqua', axe = c(1,2) )
+
+#Faire une PCA juste entre végétation opt, forestier et humide
+keep_VegOpt1 = c('id', "rive" ,"id_uea", "forestier_nrm"  ,"humide_nrm",
+                 "vegopt_nrm"  )
+norm_UREC_prod_aqau_Vegopt = norm_UREC_prod_aqau_1_v[, names(norm_UREC_prod_aqau_1_v)%in%keep_VegOpt1]
+pca_UREC_prod_aqau_Vegopt = PCA_graph_function(df =norm_UREC_prod_aqau_Vegopt, df_name = 'PCA metriques without aqua, vegopt, forest, humide', axe = c(1,2) )
+
+#Faire une PCA avec juste végétation et anthropqieu 
+keep_Vegetation_Anth = c('id', "rive" ,"id_uea","vegetation_nrm", "anthropique_nrm")
+norm_UREC_prod_aqau_VegAnth =  norm_UREC_prod_aqau_1_v[, names(norm_UREC_prod_aqau_1_v)%in%keep_Vegetation_Anth]
+pca_UREC_prod_aqau_VegAnth = PCA_graph_function(df =norm_UREC_prod_aqau_VegAnth, df_name = 'PCA metriques without aqua, Vegetation, anthro', axe = c(1,2) )
+
+#Faire PCA avec toutes les metriques sauf forestier et humide, anthropique
+drop_f_MH = c( "forestier_nrm"  ,"humide_nrm", "anthropique_nrm")
+norm_UREC_prod_aqau_2 =norm_UREC_prod_aqau_1_v[,! names(norm_UREC_prod_aqau_1_v)%in%drop_f_MH] 
+names(norm_UREC_prod_aqau_2)
+
+pca_norm_UREC_prod_aqau_2 = PCA_graph_function(df = norm_UREC_prod_aqau_2, df_name = 'PCA metrics 2', axe = c(1,2))
+
+#Faire PCA avec toutes les metriques sauf forestier, humide, anthro
+drop_f_MH_Agr_Anth = c( "forestier_nrm"  ,"humide_nrm", "anthropique_nrm")
+norm_UREC_prod_aqau_3 =norm_UREC_prod_aqau_1_v[,! names(norm_UREC_prod_aqau_1_v)%in%drop_f_MH_Agr_Anth] 
+names(norm_UREC_prod_aqau_3)
+pca_norm_UREC_prod_aqau_3 = PCA_graph_function(df = norm_UREC_prod_aqau_3, df_name = 'PCA metrics 3', axe = c(1,2))
+
+####Make index with selected métriques 
+norm_UREC_prod_aqau_3$inv_pente = -norm_UREC_prod_aqau_3$avrSlope_nrm +1
+norm_UREC_prod_aqau_3$inv_HydCon = -norm_UREC_prod_aqau_3$HydCond_nrm +1
+norm_UREC_prod_aqau_3$inv_anthro = - norm_UREC_prod_aqau$anthropique +1
+norm_UREC_prod_aqau_3$Fe1 = (norm_UREC_prod_aqau_3$vegopt_nrm + norm_UREC_prod_aqau_3$vegetation_nrm +
+                               norm_UREC_prod_aqau_3$inv_pente + norm_UREC_prod_aqau_3$hepb_nrm + 
+                               norm_UREC_prod_aqau_3$inv_HydCon)/5
+
+
+writeVector(norm_UREC_prod_aqau_3,'C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_prod_aqua_f.shp', overwrite = T )
+writeVector(norm_UREC_prod_aqau_3,'C:/Meghana/Belgique/decembre/traitements/fonction_productivite/UREC_prod_aqua_f.sqlite', filetype = 'SQLITE' ,overwrite=T)
+
+
+
+windows(10,5)
+plot(norm_UREC_prod_aqau_3$Fe1 )
+l=
+  
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
