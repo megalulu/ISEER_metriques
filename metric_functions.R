@@ -117,8 +117,8 @@ continuity_metric <- function(UREC_full, path_sampling, raster_UT, classe_UT) {
 }
 
 fragstat_function <- function(raster_file, UREC_merge, occ_sol) {
-  #raster_file : Raster file of land use you want to know frastat metrics for (i.e masked to forest, or masked to MH, or masked to Vegetation optimale)
-  #UREC_merge : sf object of spatial units (all in one objects with many features) this should be reprojected to raster file crs beforehand.
+  #raster_file : Raster file of land use you want to know fragstat metrics for (i.e masked to forest, or masked to MH, or masked to Vegetation optimale)
+  #UREC_merge : sf object of spatial units (all in one objecgts with many features) this should be reprojected to raster file crs beforehand.
   #occ_sol : string of land use type you are doing the fragstats on. The string will be add as a suffix to pd_ and area_ and will denote the column names in the resulting table (eg: pd_VegOpt)
   
   
@@ -347,14 +347,6 @@ NumberClasses <- function(UREC_merge, raster_file){
   return(UREC_merge)
 }
 
-
-UREC_merge = UREC_merge
-csv_class_correspondence = csv__class_correspondence
-raster_file = ut19_full
-r=1
-
-
-
 SurfaceClass <-
   function (UREC_merge,
             csv_class_correspondence,
@@ -394,13 +386,20 @@ SurfaceClass <-
    
     
     
-     df_summarize_joint_tbl = as.data.frame(summarize_joint_tbl)
-    transpose = t(df_summarize_joint_tbl)
-    names(transpose)<- transpose[1,] #make first row column names
-    transpose <- transpose[-1,] #remove first row that now is present twice
-     for (c in colnames(transpose)){
-      UREC_merge[r,c] = transpose[,c]
+    df_summarize_joint_tbl = as.data.frame(summarize_joint_tbl, header = T)
+    #transpose = t(df_summarize_joint_tbl)
+    for (l in 1:nrow(df_summarize_joint_tbl)){
+      line = df_summarize_joint_tbl[l,]
+      colname = line$DESC_CAT
+      UREC_merge[r,colname] = line$prop_surf
     }
+    
+    
+    # names(transpose)<- transpose[1,] #make first row column names
+    # transpose <- transpose[-1,] #remove first row that now is present twice
+    #  for (c in colnames(transpose)){
+    #   UREC_merge[r,c] = transpose[,c]
+    # }
     
        ###
       #query = ((join_tbl$DESC_CAT == 'Forestier') |(join_tbl$DESC_CAT == 'Agricole')|(join_tbl$DESC_CAT == 'Anthropique')|(join_tbl$DESC_CAT == 'Humide'))
@@ -509,6 +508,67 @@ VegetationRatio <- function(UREC_merge, raster_file){
     UREC_merge[i,]$VegRatio = feature$VegRatio
     
     
+    
+  }
+  return(UREC_merge)
+}
+
+AverageHydraulicConductivity <- function(raster_avrHc, UREC_merge, urban_vector){
+  #raster_avrHC  : SpatRaster of average Hydraulic Conductivty crop to extent of units and resample to 10mx10m with disagg function!
+  #UREC_merge :  Sf object of units set up wit id, id_uea, and rive
+  #Urban_vector : sf_object of urban areas that overlap the raster. 
+  
+  UREC_Hc_urb = UREC_merge
+  UREC_hc_urb = st_transform(UREC_Hc_urb, st_crs(raster_avrHc))
+  urban_vector = st_transform(urban_vector, st_crs(raster_avrHc))
+  
+  for (i in 1:nrow(UREC_Hc_urb)){
+    print(UREC_Hc_urb[i,])
+    urec_sub = UREC_Hc_urb[i,]
+    avr_Hc_clip = terra::crop(raster_avrHc,urec_sub)#avr_hc to extent of urec_sub
+    # avr_hc_clip_mask = terra::mask(avr_Hc_clip, urec_sub) #only keep values that are in the unit
+    
+    #crop raster mask urbain to size of sub unit
+    mask_urbain1_clip = st_intersection(urban_vector, urec_sub)
+    #Mask avr_hc_clip_mask with cropped urbain1_clip but use inverse = T and update values of inverse 
+    avr_hc_clip_mask_urb = terra::mask(avr_Hc_clip, mask_urbain1_clip, inverse = T, updatevalue = 0)
+    HC_t = exact_extract(avr_hc_clip_mask_urb,urec_sub , 'median')#Extract median value per UREC of average hydrolic conductivity in the soil 'column' (i.e 1 pixel)
+    UREC_Hc_urb[i,'HydCond'] = HC_t #add data to UREC file
+  }
+  return(UREC_Hc_urb)
+}
+
+AverageHepb <- function(UREC_merge, raster_mnt, urban_mask_vect){
+  UREC_merge = st_transform(UREC_merge, st_crs(raster_mnt))
+  UREC_merge$hepb = NA
+  for (i in 1:nrow(UREC_merge)) {
+    rive = UREC_merge[i,]
+    rive_id = rive$id
+    print(paste0('reading UREC : ', rive_id))
+    
+    mnt_mtm = raster_mnt
+    #reduce extent of raster to area of UREC
+    mnt_clip = terra::crop(mnt_mtm, rive) #Reduce the extent of the ESA raster to the extent of UREC
+    rm(mnt_mtm)
+    rive_raster = terra::rasterize(rive, mnt_clip) #rasterize UREC shapefile by using the esa_clip extent as the extent of the output raster (see docs)
+    mnt_mask = terra::mask(mnt_clip, rive_raster)  #create mask on raster with UREC shapefile
+    #extract min value of raster for each sampling unit
+    #rive$minalt = terra::extract(mnt_mask, rive, fun = min)
+    min_max = minmax(mnt_mask)
+    #rive_raster = raster::rasterize(rive, mnt_mask, field = rive$minalt)
+    mnt_min = mnt_mask - min_max[1]
+    rm(mnt_mask)
+    rm(mnt_clip)
+    #mask urbain area and assign all pixels with urbain things a value of 0
+    mnt_mask_urb = terra::mask(mnt_min, urban_mask_vect, inverse = T, updatevalue = 0)
+    
+    #writeRaster(mnt_min,paste0('D:/Meghana/Ordi_CERFO/CERFO_LP010/Meghana/Belgique/donnees_brutes/LiDAR/MNT/MTM7/clip_mtm7/', rive_id, '.tif'), overwrite = T)
+    values_mnt_mask = values(mnt_min)
+    hePb = median(values_mnt_mask, na.rm = T)
+    # hePb = median(values(mnt_min, na.rm = T))
+    UREC_merge[i, ]$hepb = hePb
+    rm(mnt_min)
+    rm(rive_raster)
     
   }
   return(UREC_merge)

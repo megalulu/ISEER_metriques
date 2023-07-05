@@ -17,7 +17,7 @@ ut19_clip_r = raster::raster('C:/Meghana/Belgique/traitements/data/UTILISATION_T
 IQBR_UT_2019_10m_Correspondence <- read.csv("C:/Meghana/donnee_brutes/IQBR_UT_2019_10m_Correspondence.csv", sep=";")
 IQBR_UT_2019_10m_Correspondence$CODE_UT = as.numeric(IQBR_UT_2019_10m_Correspondence$CODE_UT)
 
-####################################
+
 #Made land use sub classes in ArcGIS using 1.extract by mask, 2. extract by attribute tool !!! Needs to be done in advance
 #TODO : Figure out how to add RAT raster attribute table to raster layer in R, so that you can categorize and select by attribute
 
